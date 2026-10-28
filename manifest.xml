@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TaskPaneApp">
+  <Id>dc205310-1622-4bcd-a8eb-700a1a28f88e</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>apoll093</ProviderName>
+  <DefaultLocale>vi-VN</DefaultLocale>
+  <DisplayName DefaultValue="QLCP – Form nhập liệu"/>
+  <Description DefaultValue="Form nhập liệu cho file Quản lý chi phí đầu tư xây dựng"/>
+  <IconUrl DefaultValue="https://apoll093.github.io/qlcp_addin/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://apoll093.github.io/qlcp_addin/icon-64.png"/>
+  <SupportUrl DefaultValue="https://github.com/apoll093/qlcp_addin"/>
+  <AppDomains>
+    <AppDomain>https://apoll093.github.io</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://apoll093.github.io/qlcp_addin/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>
