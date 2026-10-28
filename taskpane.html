@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QLCP – Form nhập liệu</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+body{font-family:Segoe UI,Arial;font-size:13px;margin:8px}
+h3{color:#1F4E78;margin:4px 0 10px}
+label{display:block;font-weight:600;margin-top:6px}
+input,select{width:100%;box-sizing:border-box;padding:4px;border:1px solid #bbb;border-radius:3px}
+.row label{display:inline-block;font-weight:400;margin-right:12px}
+.row input{width:auto}
+fieldset{border:1px solid #1F4E78;border-radius:4px;margin-top:10px}
+legend{color:#1F4E78;font-weight:700}
+details{margin-top:10px}
+summary{cursor:pointer;color:#595959;font-weight:600}
+.calc{background:#F2F2F2;color:#000}
+.num{text-align:right}
+.req{color:#C00000}
+.pct{display:flex;gap:4px;align-items:center}
+.btns{margin-top:12px;display:flex;gap:8px}
+button{background:#1F4E78;color:#fff;border:0;padding:6px 14px;border-radius:3px;cursor:pointer}
+#clear{background:#808080}
+#msg{margin-top:10px;padding:6px;border-radius:3px}
+.ok{background:#E2EFDA;color:#375623}
+.bad{background:#FCE4D6;color:#C00000}
+</style>
+</head>
+<body>
+<div id="app">
+  <h3>Nhập liệu – Quản lý chi phí ĐTXD</h3>
+  <label>Bảng dữ liệu</label><select id="tbl"></select>
+  <div class="row">
+    <label><input type="radio" name="mode" value="new" checked> Thêm mới</label>
+    <label><input type="radio" name="mode" value="edit"> Sửa</label>
+  </div>
+  <div id="editbox" hidden>
+    <input id="key" list="keys" placeholder="Chọn mã cần sửa"><datalist id="keys"></datalist>
+    <button id="load" type="button">Tải dữ liệu</button>
+  </div>
+  <label>Người nhập</label><input id="user">
+  <form id="frm"></form>
+  <div class="btns"><button id="save">Lưu</button><button id="clear" type="button">Làm mới</button></div>
+  <div id="msg"></div>
+</div>
+<script>
+const TABLES = {tbl_HopDong:"Hợp đồng", tbl_HDThanhVien:"Thành viên liên danh", tbl_PhuLuc:"Phụ lục", tbl_BaoLanh:"Bảo lãnh",
+  tbl_NghiemThu:"Nghiệm thu", tbl_ThanhToan:"Thanh toán", tbl_ChiNgoaiHD:"Chi ngoài HĐ", tbl_QTHopDong:"Quyết toán HĐ",
+  tbl_GoiThau:"Gói thầu", tbl_DuAn:"Dự án", tbl_NhaThau:"Nhà thầu", tbl_TaiKhoanNT:"TK nhà thầu", tbl_TMDT:"QĐ TMĐT",
+  tbl_TMDT_CT:"TMĐT chi tiết", tbl_DuToan:"Dự toán", tbl_DuToan_CT:"Dự toán chi tiết", tbl_CoCauVon:"Nguồn vốn",
+  tbl_KeHoachVon:"Kế hoạch vốn", tbl_ThamSo:"Tham số"};
+const SORT_AFTER = ["tbl_HDThanhVien", "tbl_NghiemThu", "tbl_TaiKhoanNT"];
+const AUDIT = ["Ngày tạo", "Người tạo", "Ngày sửa", "Người sửa"];
+let META = null;
+const $ = (id) => Object(document.getElementById(id));
+const colNum = (s) => s.split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
+const BASE = Date.UTC(1899, 11, 30);
+const toSerial = (s) => (Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) - BASE) / 864e5;
+const fromSerial = (n) => new Date(BASE + n * 864e5).toISOString().slice(0, 10);
+const today = () => { const d = new Date(); return (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - BASE) / 864e5; };
+const fmt = (n) => (n === "" || n == null || isNaN(n)) ? "" : Number(n).toLocaleString("vi-VN");
+const parseNum = (s) => { s = String(s).replace(/\./g, "").replace(/,/g, ".").replace(/[^\d.\-]/g, ""); return s === "" ? "" : Number(s); };
+const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+const mode = () => Object(document.querySelector("input[name=mode]:checked")).value;
+const msg = (t, bad) => { $("msg").textContent = t; $("msg").className = bad ? "bad" : "ok"; };
+const run = async (fn) => { try { await fn(); } catch (e) { msg("Lỗi: " + e.message, true); } };
+
+Office.onReady(() => {
+  $("tbl").innerHTML = Object.keys(TABLES).map((k) => '<option value="' + k + '">' + Object(TABLES)[k] + "</option>").join("");
+  $("user").value = localStorage.getItem("nguoiNhap") || "";
+  $("tbl").onchange = () => run(() => build($("tbl").value));
+  document.querySelectorAll("input[name=mode]").forEach((r) => { Object(r).onchange = () => { $("editbox").hidden = mode() !== "edit"; clearForm(); }; });
+  $("load").onclick = () => run(loadRow);
+  $("save").onclick = (e) => { e.preventDefault(); run(save); };
+  $("clear").onclick = () => clearForm();
+  run(() => build($("tbl").value));
+});
+
+async function listValues(ctx, n) {
+  if (!n) return [];
+  try {
+    const r = ctx.workbook.names.getItem(n).getRange(); r.load("values"); await ctx.sync();
+    return r.values.map((v) => v[0]).filter((v) => v !== "" && v != null);
+  } catch (e) { return []; }
+}
+
+async function build(tn) {
+  META = await Excel.run(async (ctx) => {
+    const t = ctx.workbook.tables.getItem(tn);
+    const h = t.getHeaderRowRange(); h.load("values,columnIndex");
+    const r = t.getDataBodyRange().getRow(0); r.load("formulas,numberFormat");
+    const dd = ctx.workbook.tables.getItem("tbl_DataDictionary").getDataBodyRange(); dd.load("values");
+    await ctx.sync();
+    const H = h.values[0];
+    const dvs = H.map((c, i) => { const d = r.getCell(0, i).dataValidation; d.load("rule"); return d; });
+    await ctx.sync();
+    const req = Object.create(null);
+    dd.values.filter((x) => x[2] === tn).forEach((x) => { req[x[5]] = x[9] === "Có"; });
+    const fields = [];
+    for (let i = 0; i < H.length; i++) {
+      const f = String(r.formulas[0][i]), nf = String(r.numberFormat[0][i]);
+      const rule = dvs[i].rule, src = rule && rule.list ? String(rule.list.source) : "";
+      const fd = Object.assign(Object.create(null), {
+        name: H[i], i: i, formula: f.charAt(0) === "=" ? f : null, req: !!req[H[i]],
+        type: /%/.test(nf) ? "pct" : /dd\/mm|mm\/yyyy/.test(nf) ? "date" : /#,##0/.test(nf) ? "money" : "text"
+      });
+      if (src && !fd.formula) {
+        if (src.charAt(0) !== "=") fd.opts = src.split(",").map((s) => s.trim());
+        else {
+          const nm = (src.match(/\b(lst_\w+|dc_\w+)\b/g) || [])[0];
+          fd.opts = await listValues(ctx, nm);
+          const m = src.match(/MATCH\(\$?([A-Z]+)\$?5(&"(-?)\*")?,\s*(\w+)/);
+          if (m) {
+            fd.dep = H[colNum(m[1]) - h.columnIndex];
+            if (m[4] !== nm) { fd.depMode = "eq"; fd.depList = await listValues(ctx, m[4]); }
+            else { fd.depMode = "prefix"; fd.sep = m[3] || ""; }
+          }
+        }
+      }
+      fields.push(fd);
+    }
+    return { tn: tn, H: H, fields: fields, editIndex: null };
+  });
+  render(); await loadKeys(); msg("Đã tải cấu trúc bảng " + tn, false);
+}
+
+function render() {
+  const f = $("frm"); f.innerHTML = "";
+  const inp = document.createElement("fieldset"); inp.innerHTML = "<legend>Thông tin nhập</legend>";
+  const calc = document.createElement("details"); calc.innerHTML = "<summary>Thông tin tự tính (chỉ xem)</summary>";
+  META.fields.forEach((fd) => {
+    if (AUDIT.indexOf(fd.name) >= 0) return;
+    const id = "f" + fd.i; let ctl;
+    if (fd.formula) ctl = '<input id="' + id + '" readonly class="calc">';
+    else if (fd.opts) ctl = '<select id="' + id + '"></select>';
+    else if (fd.type === "date") ctl = '<input id="' + id + '" type="date">';
+    else if (fd.type === "pct") ctl = '<div class="pct"><input id="' + id + '" type="number" step="0.01"><span>%</span></div>';
+    else if (fd.type === "money") ctl = '<input id="' + id + '" class="num" inputmode="numeric">';
+    else ctl = '<input id="' + id + '">';
+    const w = document.createElement("div");
+    w.innerHTML = "<label>" + esc(fd.name) + (fd.req && !fd.formula ? ' <b class="req">*</b>' : "") + "</label>" + ctl;
+    (fd.formula ? calc : inp).appendChild(w);
+  });
+  f.appendChild(inp); f.appendChild(calc);
+  META.fields.forEach((fd) => {
+    const el = $("f" + fd.i); if (!el.id || fd.formula) return;
+    if (fd.type === "money") el.onblur = () => { const v = parseNum(el.value); el.value = v === "" ? "" : fmt(v); };
+    if (fd.opts) fillOpts(fd);
+  });
+  META.fields.filter((fd) => fd.dep).forEach((fd) => {
+    const d = META.fields.find((x) => x.name === fd.dep);
+    const el = d ? $("f" + d.i) : null;
+    if (el && el.id) el.addEventListener("change", () => fillOpts(fd));
+  });
+}
+
+function fillOpts(fd) {
+  const el = $("f" + fd.i); if (!el.id) return;
+  const cur = el.value; let o = fd.opts;
+  if (fd.dep) {
+    const d = META.fields.find((x) => x.name === fd.dep);
+    const dv = d ? String($("f" + d.i).value || "") : "";
+    if (dv) o = fd.depMode === "eq" ? fd.opts.filter((v, k) => String(fd.depList[k]) === dv) : fd.opts.filter((v) => String(v).indexOf(dv + fd.sep) === 0);
+    else if (!(d && d.formula)) o = [];
+  }
+  el.innerHTML = '<option value=""></option>' + o.map((v) => '<option value="' + esc(v) + '">' + esc(fd.type === "pct" && typeof v === "number" ? +(v * 100).toFixed(2) + "%" : v) + "</option>").join("");
+  if (o.map(String).indexOf(cur) >= 0) el.value = cur;
+}
+
+function getVal(fd) {
+  const el = $("f" + fd.i); if (!el.id) return "";
+  const v = el.value; if (v === "" || v == null) return "";
+  if (fd.type === "date") return toSerial(v);
+  if (fd.type === "pct") return el.tagName === "SELECT" ? Number(v) : Number(v) / 100;
+  if (fd.type === "money") return parseNum(v);
+  if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
+  return v;
+}
+
+function setVal(fd, v) {
+  const el = $("f" + fd.i); if (!el.id) return;
+  if (v === "" || v == null) { el.value = ""; return; }
+  if (fd.type === "date" && typeof v === "number") el.value = fromSerial(v);
+  else if (fd.type === "pct" && typeof v === "number") el.value = el.tagName === "SELECT" ? String(v) : (fd.formula ? +(v * 100).toFixed(2) + "%" : +(v * 100).toFixed(4));
+  else if (fd.type === "money" && typeof v === "number") el.value = fmt(v);
+  else {
+    if (el.tagName === "SELECT" && !Array.from(el.options).some((o) => Object(o).value === String(v))) el.insertAdjacentHTML("beforeend", "<option>" + esc(v) + "</option>");
+    el.value = String(v);
+  }
+}
+
+function clearForm() {
+  if (!META) return;
+  META.editIndex = null;
+  META.fields.forEach((fd) => setVal(fd, ""));
+  META.fields.filter((fd) => fd.opts && !fd.formula).forEach(fillOpts);
+  msg("", false);
+}
+
+async function loadKeys() {
+  await Excel.run(async (ctx) => {
+    const k = ctx.workbook.tables.getItem(META.tn).columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
+    $("keys").innerHTML = k.values.map((v) => '<option value="' + esc(v[0]) + '">').join("");
+  });
+}
+
+async function loadRow() {
+  const key = String($("key").value || "").trim(); if (!key) return msg("Chọn mã cần sửa", true);
+  await Excel.run(async (ctx) => {
+    const t = ctx.workbook.tables.getItem(META.tn);
+    const k = t.columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
+    const idx = k.values.findIndex((v) => String(v[0]) === key);
+    if (idx < 0) throw new Error("Không tìm thấy " + key);
+    const r = t.getDataBodyRange().getRow(idx); r.load("values"); await ctx.sync();
+    META.editIndex = idx;
+    META.fields.forEach((fd) => setVal(fd, r.values[0][fd.i]));
+    META.fields.filter((fd) => fd.dep && !fd.formula).forEach((fd) => { fillOpts(fd); setVal(fd, r.values[0][fd.i]); });
+    msg("Đã tải " + key, false);
+  });
+}
+
+async function ensureViews(ctx) {
+  const wb = ctx.workbook;
+  const hd = wb.tables.getItem("tbl_HopDong").getDataBodyRange(); hd.load("rowCount");
+  const v1 = wb.tables.getItem("tbl_HDHienHanh").getDataBodyRange(); v1.load("rowCount");
+  const v2 = wb.tables.getItem("tbl_TVHienHanh").getDataBodyRange(); v2.load("rowCount");
+  const f1 = v1.getRow(0); f1.load("formulas");
+  const f2 = v2.getRow(0); f2.load("formulas");
+  await ctx.sync();
+  const addRows = (name, n, f) => { if (n > 0) { const rows = []; for (let k = 0; k < n; k++) rows.push(f.formulas[0]); wb.tables.getItem(name).rows.add(null, rows); } };
+  addRows("tbl_HDHienHanh", hd.rowCount - v1.rowCount, f1);
+  await ctx.sync();
+  const dv = wb.names.getItem("lst_DonViTC").getRange(); dv.load("rowCount"); await ctx.sync();
+  addRows("tbl_TVHienHanh", dv.rowCount - v2.rowCount, f2);
+  await ctx.sync();
+}
+
+async function save() {
+  const user = String($("user").value || "").trim(); if (!user) return msg("Nhập tên người nhập", true);
+  localStorage.setItem("nguoiNhap", user);
+  const miss = META.fields.filter((fd) => !fd.formula && AUDIT.indexOf(fd.name) < 0 && fd.req && getVal(fd) === "").map((fd) => fd.name);
+  if (miss.length) return msg("Thiếu: " + miss.join(", "), true);
+  const isNew = mode() === "new";
+  if (!isNew && META.editIndex == null) return msg("Chưa tải dòng cần sửa", true);
+  await Excel.run(async (ctx) => {
+    const t = ctx.workbook.tables.getItem(META.tn);
+    let old = META.H.map(() => "");
+    if (!isNew) { const r0 = t.getDataBodyRange().getRow(META.editIndex); r0.load("values"); await ctx.sync(); old = r0.values[0]; }
+    const out = META.fields.map((fd) => {
+      if (fd.formula) return fd.formula;
+      if (fd.name === "Ngày tạo") return isNew ? today() : old[fd.i];
+      if (fd.name === "Người tạo") return isNew ? user : old[fd.i];
+      if (fd.name === "Ngày sửa") return isNew ? "" : today();
+      if (fd.name === "Người sửa") return isNew ? "" : user;
+      return getVal(fd);
+    });
+    let row;
+    if (isNew) row = t.rows.add(null, [out]).getRange();
+    else { row = t.getDataBodyRange().getRow(META.editIndex); row.formulas = [out]; }
+    row.load("values"); await ctx.sync();
+    const key = row.values[0][0];
+    if (SORT_AFTER.indexOf(META.tn) >= 0) { t.sort.apply([{ key: 0, ascending: true }]); await ctx.sync(); }
+    await ensureViews(ctx);
+    const k = t.columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
+    const idx = k.values.findIndex((v) => v[0] === key); META.editIndex = idx;
+    const r2 = t.getDataBodyRange().getRow(idx); r2.load("values"); await ctx.sync();
+    META.fields.filter((fd) => fd.formula).forEach((fd) => setVal(fd, r2.values[0][fd.i]));
+    const kc = META.H.indexOf("Kiểm tra"); const kt = kc >= 0 ? r2.values[0][kc] : "OK";
+    msg((isNew ? "Đã thêm " : "Đã cập nhật ") + key + " – Kiểm tra: " + kt, String(kt).indexOf("⚠") >= 0);
+  });
+  await loadKeys();
+}
+</script>
+</body>
+</html>
