@@ -6,91 +6,165 @@
 <title>QLCP – Form nhập liệu</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <style>
-body{font-family:Segoe UI,Arial;font-size:13px;margin:8px}
-h3{color:#1F4E78;margin:4px 0 10px}
-label{display:block;font-weight:600;margin-top:6px}
-input,select{width:100%;box-sizing:border-box;padding:4px;border:1px solid #bbb;border-radius:3px}
-.row label{display:inline-block;font-weight:400;margin-right:12px}
-.row input{width:auto}
-fieldset{border:1px solid #1F4E78;border-radius:4px;margin-top:10px}
-legend{color:#1F4E78;font-weight:700}
-details{margin-top:10px}
-summary{cursor:pointer;color:#595959;font-weight:600}
-.calc{background:#F2F2F2;color:#000}
-.num{text-align:right}
-.req{color:#C00000}
-.pct{display:flex;gap:4px;align-items:center}
-.btns{margin-top:12px;display:flex;gap:8px}
-button{background:#1F4E78;color:#fff;border:0;padding:6px 14px;border-radius:3px;cursor:pointer}
-#clear{background:#808080}
-#msg{margin-top:10px;padding:6px;border-radius:3px}
-.ok{background:#E2EFDA;color:#375623}
-.bad{background:#FCE4D6;color:#C00000}
+:root{--navy:#0F2A44;--bg:#F4F6FB;--line:#E2E8F0;--txt:#1E293B;--mut:#64748B;--pri:#2563EB}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;font-size:13px;color:var(--txt);background:var(--bg);padding-bottom:74px}
+.top{background:linear-gradient(90deg,#0F2A44,#1E3A5F);color:#fff;padding:8px 10px 6px;position:sticky;top:0;z-index:20}
+.row1{display:flex;align-items:center;gap:8px}
+.brand{font-weight:700;white-space:nowrap;font-size:13.5px;flex:1}
+.avatar{width:26px;height:26px;border-radius:50%;background:#F59E0B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex:none}
+.nav{display:flex;gap:3px;overflow-x:auto;margin-top:6px;scrollbar-width:none}
+.nav a{color:#CBD5E1;text-decoration:none;padding:4px 8px;border-radius:6px;white-space:nowrap;font-size:12px;cursor:pointer}
+.nav a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:600}
+#tbl{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 6px;font-size:12px;width:auto;max-width:150px}
+#tbl option{color:#1E293B}
+.wrap{padding:10px}
+.crumb{color:var(--mut);font-size:11.5px;margin-bottom:4px}.crumb b{color:var(--txt)}
+.title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title h1{font-size:17px;margin:0}.title .sp{flex:1}
+.badge{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600}
+.b-new{background:#DBEAFE;color:#1D4ED8}.b-edit{background:#FEF3C7;color:#B45309}
+.link{background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--txt)}
+.modebar{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;align-items:center}
+.seg{display:flex;background:#E2E8F0;border-radius:8px;padding:2px}
+.seg button{border:0;background:transparent;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--mut)}
+.seg button.on{background:#fff;color:var(--txt);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+#pick{flex:1;min-width:150px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.sum .k{font-size:11px;color:var(--mut)}.sum .v{font-weight:700;font-size:13.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prog{height:6px;background:#E2E8F0;border-radius:4px;overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;background:linear-gradient(90deg,#22C55E,#16A34A);width:0;transition:width .3s}
+.st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+.st-g{background:#DCFCE7;color:#166534}.st-b{background:#DBEAFE;color:#1D4ED8}.st-o{background:#FFEDD5;color:#C2410C}.st-s{background:#E2E8F0;color:#334155}.st-r{background:#FEE2E2;color:#991B1B}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;position:sticky;top:64px;background:var(--bg);z-index:10;scrollbar-width:thin}
+.tab{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;white-space:nowrap;font-size:12px;transition:all .15s}
+.tab .n{width:20px;height:20px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--c)}
+.tab:hover{border-color:var(--c)}.tab.on{border-color:var(--c);background:var(--cl);color:var(--c);font-weight:600}
+.tab.done .n{background:#16A34A}
+.sec{border-left:4px solid var(--c);scroll-margin-top:110px}
+.sec h2{font-size:14px;margin:0 0 10px;display:flex;align-items:center;gap:8px;color:var(--c)}
+.sec h2 .ic{width:28px;height:28px;border-radius:8px;background:var(--cl);display:flex;align-items:center;justify-content:center;font-size:15px}
+.sec h2 small{margin-left:auto;font-weight:500;color:var(--mut);font-size:11px;background:var(--cl);padding:2px 8px;border-radius:999px}
+.note{font-size:11.5px;color:var(--mut);background:var(--cl);border-radius:6px;padding:6px 8px;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}.full{grid-column:1/-1}
+@media(max-width:360px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px;font-weight:600}
+.req{color:#DC2626}.fx{color:#0891B2;font-style:italic;font-weight:700}
+input,select,textarea{width:100%;padding:6px 8px;border:1px solid #CBD5E1;border-radius:6px;font:inherit;background:#fff;color:var(--txt)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.calc{background:#F1F5F9;color:#334155;border-style:dashed}.num{text-align:right}
+.unit{position:relative}.unit span{position:absolute;right:8px;top:7px;color:var(--mut);font-size:11px}.unit input{padding-right:42px}
+.hint{font-size:11px;color:var(--mut);margin-top:3px}
+.err{border-color:#DC2626!important;background:#FEF2F2!important}
+.foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 -2px 10px rgba(15,42,68,.08);z-index:20}
+.foot .info{flex:1;min-width:0}.foot .info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.foot .info small{color:var(--mut)}
+.btn{border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:12.5px;white-space:nowrap}
+.btn.pri{background:var(--pri);color:#fff}.btn.pri:hover{background:#1D4ED8}.btn.gh{background:#E2E8F0;color:var(--txt)}
+#msg{position:fixed;left:10px;right:10px;bottom:66px;padding:9px 12px;border-radius:8px;display:none;font-weight:600;z-index:30;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.ok{background:#DCFCE7;color:#166534}.bad{background:#FEE2E2;color:#991B1B}
 </style>
 </head>
 <body>
-<div id="app">
-  <h3>Nhập liệu – Quản lý chi phí ĐTXD</h3>
-  <label>Bảng dữ liệu</label><select id="tbl"></select>
-  <div class="row">
-    <label><input type="radio" name="mode" value="new" checked> Thêm mới</label>
-    <label><input type="radio" name="mode" value="edit"> Sửa</label>
+<header class="top">
+  <div class="row1"><div class="brand">🏗️ Nhập liệu – Quản lý chi phí ĐTXD</div><div class="avatar" id="avatar">NL</div></div>
+  <nav class="nav" id="nav"></nav>
+</header>
+<div class="wrap">
+  <div class="crumb" id="crumb"></div>
+  <div class="title">
+    <h1 id="h1"></h1><span class="badge b-new" id="badge">Thêm mới</span>
+    <span class="sp"></span><button class="link" id="goto" type="button" title="Chọn dòng tương ứng trên sheet">📍 Xem trên sheet</button>
   </div>
-  <div id="editbox" hidden>
-    <input id="key" list="keys" placeholder="Chọn mã cần sửa"><datalist id="keys"></datalist>
-    <button id="load" type="button">Tải dữ liệu</button>
+  <div class="modebar">
+    <div class="seg"><button id="mNew" type="button" class="on">＋ Thêm mới</button><button id="mEdit" type="button">✎ Sửa</button></div>
+    <select id="pick" hidden></select>
   </div>
-  <label>Người nhập</label><input id="user">
-  <form id="frm"></form>
-  <div class="btns"><button id="save">Lưu</button><button id="clear" type="button">Làm mới</button></div>
-  <div id="msg"></div>
+  <div class="card"><div class="sum" id="sum"></div></div>
+  <div class="tabs" id="tabs"></div>
+  <form id="frm" onsubmit="return false"></form>
+</div>
+<div id="msg"></div>
+<div class="foot">
+  <div class="info"><b id="fTitle"></b><small id="fSub"></small></div>
+  <button class="btn gh" id="clear" type="button">↺ Làm mới</button>
+  <button class="btn pri" id="save" type="button">💾 Lưu</button>
 </div>
 <script>
-const TABLES = {tbl_HopDong:"Hợp đồng", tbl_HDThanhVien:"Thành viên liên danh", tbl_PhuLuc:"Phụ lục", tbl_BaoLanh:"Bảo lãnh",
-  tbl_NghiemThu:"Nghiệm thu", tbl_ThanhToan:"Thanh toán", tbl_ChiNgoaiHD:"Chi ngoài HĐ", tbl_QTHopDong:"Quyết toán HĐ",
-  tbl_GoiThau:"Gói thầu", tbl_DuAn:"Dự án", tbl_NhaThau:"Nhà thầu", tbl_TaiKhoanNT:"TK nhà thầu", tbl_TMDT:"QĐ TMĐT",
-  tbl_TMDT_CT:"TMĐT chi tiết", tbl_DuToan:"Dự toán", tbl_DuToan_CT:"Dự toán chi tiết", tbl_CoCauVon:"Nguồn vốn",
-  tbl_KeHoachVon:"Kế hoạch vốn", tbl_ThamSo:"Tham số"};
+const TABLES = {tbl_DuAn:"🏢 Dự án", tbl_HopDong:"📑 Hợp đồng", tbl_HDThanhVien:"👥 Thành viên liên danh", tbl_PhuLuc:"📎 Phụ lục",
+  tbl_BaoLanh:"🛡️ Bảo lãnh", tbl_NghiemThu:"✅ Nghiệm thu", tbl_ThanhToan:"💳 Thanh toán", tbl_ChiNgoaiHD:"🧾 Chi ngoài HĐ",
+  tbl_QTHopDong:"📘 Quyết toán HĐ", tbl_GoiThau:"📦 Gói thầu", tbl_NhaThau:"👷 Nhà thầu", tbl_TaiKhoanNT:"🏦 TK nhà thầu",
+  tbl_TMDT:"💰 QĐ TMĐT", tbl_TMDT_CT:"💵 TMĐT chi tiết", tbl_DuToan:"📐 Dự toán", tbl_DuToan_CT:"📏 Dự toán chi tiết",
+  tbl_CoCauVon:"🏛️ Nguồn vốn", tbl_KeHoachVon:"📅 Kế hoạch vốn", tbl_ThamSo:"⚙️ Tham số"};
+const QUICK = ["tbl_DuAn", "tbl_HopDong", "tbl_NghiemThu", "tbl_ThanhToan"];
 const SORT_AFTER = ["tbl_HDThanhVien", "tbl_NghiemThu", "tbl_TaiKhoanNT"];
 const AUDIT = ["Ngày tạo", "Người tạo", "Ngày sửa", "Người sửa"];
-let META = null;
+const C = { blue: ["#2563EB", "#EFF6FF"], green: ["#059669", "#ECFDF5"], violet: ["#7C3AED", "#F5F3FF"], orange: ["#EA580C", "#FFF7ED"], cyan: ["#0891B2", "#ECFEFF"], slate: ["#475569", "#F1F5F9"] };
+const LAYOUT = {
+  tbl_DuAn: [
+    { ic: "🏢", t: "Thông tin chung", c: "blue", f: ["Mã dự án", "Tên dự án", "Mã CĐT", "Tên chủ đầu tư", "Loại hình dự án", "Nhóm dự án", "Cấp công trình"] },
+    { ic: "📍", t: "Địa điểm & quy mô", c: "green", f: ["Địa điểm (xã/phường)", "Tỉnh/Thành", "Diện tích đất (m²)", "Tổng DT sàn XD (m²)", "Quy mô / Công suất"] },
+    { ic: "📜", t: "Pháp lý – chủ trương", c: "violet", f: ["Số QĐ chấp thuận chủ trương", "Ngày QĐ chủ trương"] },
+    { ic: "📅", t: "Tiến độ & trạng thái", c: "orange", f: ["Ngày khởi công (KH)", "Ngày hoàn thành (KH)", "Thời gian thực hiện (tháng)", "Giai đoạn", "Trạng thái"] },
+    { ic: "💰", t: "Tổng mức đầu tư", c: "cyan", f: ["TMĐT phê duyệt (VNĐ)", "TMĐT hiện hành (VNĐ)"], note: "ƒx Tự tính từ sheet TMDT (lần 0 = phê duyệt; Hiệu lực = Có = hiện hành). Không nhập tại đây." }
+  ]
+};
+const SUMMARY = {
+  tbl_DuAn: ["Mã dự án", "Tên chủ đầu tư", "Trạng thái", "TMĐT hiện hành (VNĐ)", "Thời gian thực hiện (tháng)"],
+  tbl_HopDong: ["Mã hợp đồng", "Tên nhà thầu", "Trạng thái HĐ", "Giá trị pháp lý sau thuế (VNĐ)"],
+  tbl_ThanhToan: ["Mã giao dịch", "Mã hợp đồng", "Loại giao dịch", "Số tiền thực chi (VNĐ)"],
+  tbl_NghiemThu: ["Mã nghiệm thu", "Mã hợp đồng", "Đợt", "Giá trị NT sau thuế (VNĐ)"]
+};
+const OPT = {
+  "Tên dự án": { req: 1, full: 1, ph: "VD: Khu đô thị ABC Riverside" }, "Tên chủ đầu tư": { full: 1 },
+  "Quy mô / Công suất": { full: 1, ph: "VD: 35 tầng nổi + 4 tầng hầm" }, "Số QĐ chấp thuận chủ trương": { ph: "VD: 123/QĐ-UBND" },
+  "Diện tích đất (m²)": { unit: "m²" }, "Tổng DT sàn XD (m²)": { unit: "m²" }, "Thời gian thực hiện (tháng)": { unit: "tháng" },
+  "Ghi chú": { full: 1, area: 1 }, "Nội dung": { full: 1 }, "Diễn giải": { full: 1 }, "Kiểm tra": { full: 1 }
+};
+let META = null, MODE = "new";
 const $ = (id) => Object(document.getElementById(id));
 const colNum = (s) => s.split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
 const BASE = Date.UTC(1899, 11, 30);
 const toSerial = (s) => (Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) - BASE) / 864e5;
-const fromSerial = (n) => new Date(BASE + n * 864e5).toISOString().slice(0, 10);
+const fromSerial = (n) => new Date(BASE + Math.round(n) * 864e5).toISOString().slice(0, 10);
 const today = () => { const d = new Date(); return (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - BASE) / 864e5; };
 const fmt = (n) => (n === "" || n == null || isNaN(n)) ? "" : Number(n).toLocaleString("vi-VN");
 const parseNum = (s) => { s = String(s).replace(/\./g, "").replace(/,/g, ".").replace(/[^\d.\-]/g, ""); return s === "" ? "" : Number(s); };
-const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-const mode = () => Object(document.querySelector("input[name=mode]:checked")).value;
-const msg = (t, bad) => { $("msg").textContent = t; $("msg").className = bad ? "bad" : "ok"; };
+const esc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+const F = (n) => META && META.fields.find((x) => x.name === n);
+const E = (fd) => fd ? $("f" + fd.i) : Object(null);
+const isRO = (fd) => !!fd.formula || AUDIT.indexOf(fd.name) >= 0;
+const val = (fd) => String(E(fd).value == null ? "" : E(fd).value).trim();
+const msg = (t, bad) => { const e = $("msg"); if (!t) { e.style.display = "none"; return; } e.textContent = t; e.className = bad ? "bad" : "ok"; e.style.display = "block"; clearTimeout(msg.h); msg.h = setTimeout(() => { e.style.display = "none"; }, bad ? 7000 : 4000); };
 const run = async (fn) => { try { await fn(); } catch (e) { msg("Lỗi: " + e.message, true); } };
 
 Office.onReady(() => {
-  $("tbl").innerHTML = Object.keys(TABLES).map((k) => '<option value="' + k + '">' + Object(TABLES)[k] + "</option>").join("");
-  $("user").value = localStorage.getItem("nguoiNhap") || "";
+  $("nav").innerHTML = QUICK.map((k) => '<a data-t="' + k + '">' + TABLES[k] + "</a>").join("") + '<select id="tbl">' + Object.keys(TABLES).map((k) => '<option value="' + k + '">' + TABLES[k] + "</option>").join("") + "</select>";
+  document.querySelectorAll(".nav a").forEach((a) => { Object(a).onclick = () => { $("tbl").value = Object(a).dataset.t; run(() => build($("tbl").value)); }; });
   $("tbl").onchange = () => run(() => build($("tbl").value));
-  document.querySelectorAll("input[name=mode]").forEach((r) => { Object(r).onchange = () => { $("editbox").hidden = mode() !== "edit"; clearForm(); }; });
-  $("load").onclick = () => run(loadRow);
-  $("save").onclick = (e) => { e.preventDefault(); run(save); };
-  $("clear").onclick = () => clearForm();
+  $("mNew").onclick = () => setMode("new");
+  $("mEdit").onclick = () => setMode("edit");
+  $("pick").onchange = () => run(() => $("pick").value ? loadRow($("pick").value) : clearForm());
+  $("clear").onclick = () => setMode(MODE);
+  $("save").onclick = () => run(save);
+  $("goto").onclick = () => run(gotoRow);
+  window.addEventListener("scroll", spy);
   run(() => build($("tbl").value));
 });
 
+function avatar() { const u = String($("user").value || "").trim().split(/\s+/); $("avatar").textContent = u[0] ? (u.length > 1 ? u[0][0] + u[u.length - 1][0] : u[0].slice(0, 2)).toUpperCase() : "NL"; }
+
 async function listValues(ctx, n) {
   if (!n) return [];
-  try {
-    const r = ctx.workbook.names.getItem(n).getRange(); r.load("values"); await ctx.sync();
-    return r.values.map((v) => v[0]).filter((v) => v !== "" && v != null);
-  } catch (e) { return []; }
+  try { const r = ctx.workbook.names.getItem(n).getRange(); r.load("values"); await ctx.sync(); return r.values.map((v) => v[0]).filter((v) => v !== "" && v != null); }
+  catch (e) { return []; }
 }
 
 async function build(tn) {
   META = await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(tn);
     const h = t.getHeaderRowRange(); h.load("values,columnIndex");
-    const r = t.getDataBodyRange().getRow(0); r.load("formulas,numberFormat");
+    const body = t.getDataBodyRange(); body.load("values");
+    const r = body.getRow(0); r.load("formulas,numberFormat");
     const dd = ctx.workbook.tables.getItem("tbl_DataDictionary").getDataBodyRange(); dd.load("values");
     await ctx.sync();
     const H = h.values[0];
@@ -103,7 +177,7 @@ async function build(tn) {
       const f = String(r.formulas[0][i]), nf = String(r.numberFormat[0][i]);
       const rule = dvs[i].rule, src = rule && rule.list ? String(rule.list.source) : "";
       const fd = Object.assign(Object.create(null), {
-        name: H[i], i: i, formula: f.charAt(0) === "=" ? f : null, req: !!req[H[i]],
+        name: H[i], i: i, formula: f.charAt(0) === "=" ? f : null, req: !!(req[H[i]] || (OPT[H[i]] && OPT[H[i]].req)),
         type: /%/.test(nf) ? "pct" : /dd\/mm|mm\/yyyy/.test(nf) ? "date" : /#,##0/.test(nf) ? "money" : "text"
       });
       if (src && !fd.formula) {
@@ -121,57 +195,177 @@ async function build(tn) {
       }
       fields.push(fd);
     }
-    return { tn: tn, H: H, fields: fields, editIndex: null };
+    let ct = null;
+    if (H.indexOf("Mã CĐT") >= 0) { try { const c = ctx.workbook.tables.getItem("tbl_CongTy").getDataBodyRange(); c.load("values"); await ctx.sync(); ct = c.values; } catch (e) { } }
+    return { tn: tn, H: H, fields: fields, rows: body.values, editIndex: null, ct: ct };
   });
-  render(); await loadKeys(); msg("Đã tải cấu trúc bảng " + tn, false);
+  document.querySelectorAll(".nav a").forEach((a) => Object(a).classList.toggle("on", Object(a).dataset.t === tn));
+  META.secs = sections();
+  render(); fillPick(); setMode(MODE);
+  msg("Đã tải " + TABLES[tn] + " – " + META.rows.filter((x) => x[0] !== "").length + " dòng", false);
+}
+
+function sections() {
+  const used = Object.create(null), out = [];
+  const add = (s) => { const f = s.f.filter((n) => META.H.indexOf(n) >= 0 && !used[n]); f.forEach((n) => { used[n] = 1; }); if (f.length) out.push(Object.assign({}, s, { f: f })); };
+  if (LAYOUT[META.tn]) LAYOUT[META.tn].forEach(add);
+  else {
+    const fs = META.fields.filter((fd) => AUDIT.indexOf(fd.name) < 0 && fd.name !== "Ghi chú");
+    const inp = fs.filter((fd) => !fd.formula);
+    const isKey = (fd) => /^Mã /.test(fd.name);
+    const isTime = (fd) => fd.type === "date" || /^(Ngày|Tháng|Năm|Thời hạn|Thời gian|Đợt)/.test(fd.name);
+    const isMoney = (fd) => fd.type === "money" || fd.type === "pct" || /VNĐ|Tỷ lệ|Thuế/.test(fd.name);
+    add({ ic: "🔑", t: "Mã & liên kết", c: "blue", f: inp.filter(isKey).map((x) => x.name) });
+    add({ ic: "📝", t: "Thông tin chung", c: "green", f: inp.filter((x) => !isKey(x) && !isTime(x) && !isMoney(x)).map((x) => x.name) });
+    add({ ic: "📅", t: "Thời gian", c: "orange", f: inp.filter((x) => !isKey(x) && isTime(x)).map((x) => x.name) });
+    add({ ic: "💰", t: "Giá trị & tỷ lệ", c: "cyan", f: inp.filter((x) => !isKey(x) && !isTime(x) && isMoney(x)).map((x) => x.name) });
+    add({ ic: "ƒx", t: "Tự tính (chỉ xem)", c: "violet", f: fs.filter((x) => x.formula).map((x) => x.name), note: "Các cột công thức của bảng – form giữ nguyên công thức, cập nhật kết quả sau khi Lưu." });
+  }
+  add({ ic: "🗂️", t: "Khác", c: "violet", f: META.H.filter((n) => n !== "Ghi chú" && AUDIT.indexOf(n) < 0) });
+  add({ ic: "🕒", t: "Ghi chú & lưu vết", c: "slate", f: ["Ghi chú"].concat(AUDIT), log: 1 });
+  if (!out.some((s) => s.log)) out.push({ ic: "🕒", t: "Ghi chú & lưu vết", c: "slate", f: [], log: 1 });
+  out.forEach((s, k) => { s.id = "s" + (k + 1); });
+  return out;
+}
+
+function ctl(fd) {
+  const o = OPT[fd.name] || {}, id = "f" + fd.i, ro = isRO(fd);
+  let x;
+  if (ro) x = '<input id="' + id + '" readonly tabindex="-1" class="calc' + (fd.type === "money" ? " num" : "") + '" placeholder="' + (fd.formula ? "Tự tính" : "Tự ghi khi lưu") + '">';
+  else if (fd.opts) x = '<select id="' + id + '"></select>';
+  else if (fd.type === "date") x = '<input id="' + id + '" type="date">';
+  else if (fd.type === "pct") { x = '<input id="' + id + '" type="number" step="0.01" class="num">'; o.unit = "%"; }
+  else if (o.area) x = '<textarea id="' + id + '" rows="2" placeholder="Ghi chú thêm (nếu có)"></textarea>';
+  else if (fd.type === "money") x = '<input id="' + id + '" class="num" inputmode="decimal" placeholder="0">';
+  else x = '<input id="' + id + '" placeholder="' + esc(o.ph || "") + '">';
+  if (o.unit) x = '<div class="unit">' + x + "<span>" + o.unit + "</span></div>";
+  return '<div class="' + (o.full || o.area ? "full" : "") + '"><label for="' + id + '">' + esc(fd.name) + (fd.req && !ro ? ' <span class="req">*</span>' : "") + (fd.formula ? ' <span class="fx">ƒx</span>' : "") + "</label>" + x + "</div>";
 }
 
 function render() {
-  const f = $("frm"); f.innerHTML = "";
-  const inp = document.createElement("fieldset"); inp.innerHTML = "<legend>Thông tin nhập</legend>";
-  const calc = document.createElement("details"); calc.innerHTML = "<summary>Thông tin tự tính (chỉ xem)</summary>";
+  const S = META.secs;
+  $("h1").textContent = TABLES[META.tn].replace(/^\S+\s/, "Hồ sơ ");
+  $("tabs").innerHTML = S.map((s, k) => '<div class="tab" data-s="' + s.id + '" style="--c:' + C[s.c][0] + ";--cl:" + C[s.c][1] + '"><span class="n">' + (k + 1) + "</span>" + s.ic + " " + s.t + "</div>").join("");
+  $("frm").innerHTML = S.map((s, k) => {
+    let inner = s.f.map((n) => ctl(F(n))).join("");
+    if (s.log) inner = '<div><label for="user">Người nhập <span class="req">*</span></label><input id="user" placeholder="Tên người nhập"></div><div></div>' + inner;
+    return '<section class="card sec" id="' + s.id + '" style="--c:' + C[s.c][0] + ";--cl:" + C[s.c][1] + '"><h2><span class="ic">' + s.ic + "</span>" + (k + 1) + " · " + s.t + '<small id="c_' + s.id + '"></small></h2>' + (s.note ? '<div class="note">' + s.note + "</div>" : "") + '<div class="grid">' + inner + "</div></section>";
+  }).join("");
+  $("user").value = localStorage.getItem("nguoiNhap") || ""; $("user").oninput = avatar; avatar();
+  document.querySelectorAll(".tab").forEach((t) => { Object(t).onclick = () => { $(Object(t).dataset.s).scrollIntoView({ behavior: "smooth", block: "start" }); setTab(Object(t).dataset.s); }; });
   META.fields.forEach((fd) => {
-    if (AUDIT.indexOf(fd.name) >= 0) return;
-    const id = "f" + fd.i; let ctl;
-    if (fd.formula) ctl = '<input id="' + id + '" readonly class="calc">';
-    else if (fd.opts) ctl = '<select id="' + id + '"></select>';
-    else if (fd.type === "date") ctl = '<input id="' + id + '" type="date">';
-    else if (fd.type === "pct") ctl = '<div class="pct"><input id="' + id + '" type="number" step="0.01"><span>%</span></div>';
-    else if (fd.type === "money") ctl = '<input id="' + id + '" class="num" inputmode="numeric">';
-    else ctl = '<input id="' + id + '">';
-    const w = document.createElement("div");
-    w.innerHTML = "<label>" + esc(fd.name) + (fd.req && !fd.formula ? ' <b class="req">*</b>' : "") + "</label>" + ctl;
-    (fd.formula ? calc : inp).appendChild(w);
-  });
-  f.appendChild(inp); f.appendChild(calc);
-  META.fields.forEach((fd) => {
-    const el = $("f" + fd.i); if (!el.id || fd.formula) return;
-    if (fd.type === "money") el.onblur = () => { const v = parseNum(el.value); el.value = v === "" ? "" : fmt(v); };
+    const el = E(fd); if (!el.id || isRO(fd)) return;
+    if (fd.type === "money") el.addEventListener("blur", () => { const v = parseNum(el.value); el.value = v === "" ? "" : fmt(v); });
+    el.addEventListener("input", () => onChange(fd)); el.addEventListener("change", () => onChange(fd));
     if (fd.opts) fillOpts(fd);
   });
-  META.fields.filter((fd) => fd.dep).forEach((fd) => {
-    const d = META.fields.find((x) => x.name === fd.dep);
-    const el = d ? $("f" + d.i) : null;
-    if (el && el.id) el.addEventListener("change", () => fillOpts(fd));
-  });
+  META.fields.filter((fd) => fd.dep).forEach((fd) => { const el = E(F(fd.dep)); if (el.id) el.addEventListener("change", () => fillOpts(fd)); });
+  setTab("s1");
 }
 
+function setTab(id) { document.querySelectorAll(".tab").forEach((t) => Object(t).classList.toggle("on", Object(t).dataset.s === id)); }
+function spy() { if (!META) return; let cur = "s1"; META.secs.forEach((s) => { if ($(s.id).getBoundingClientRect().top < 150) cur = s.id; }); setTab(cur); }
+
 function fillOpts(fd) {
-  const el = $("f" + fd.i); if (!el.id) return;
+  const el = E(fd); if (!el.id) return;
   const cur = el.value; let o = fd.opts;
   if (fd.dep) {
-    const d = META.fields.find((x) => x.name === fd.dep);
-    const dv = d ? String($("f" + d.i).value || "") : "";
+    const d = F(fd.dep), dv = d ? val(d) : "";
     if (dv) o = fd.depMode === "eq" ? fd.opts.filter((v, k) => String(fd.depList[k]) === dv) : fd.opts.filter((v) => String(v).indexOf(dv + fd.sep) === 0);
     else if (!(d && d.formula)) o = [];
   }
-  el.innerHTML = '<option value=""></option>' + o.map((v) => '<option value="' + esc(v) + '">' + esc(fd.type === "pct" && typeof v === "number" ? +(v * 100).toFixed(2) + "%" : v) + "</option>").join("");
+  const lab = (v) => { if (fd.type === "pct" && typeof v === "number") return +(v * 100).toFixed(2) + "%"; if (fd.name === "Mã CĐT" && META.ct) { const c = META.ct.find((x) => x[0] === v); if (c) return v + " – " + (c[2] || c[1]); } return v; };
+  el.innerHTML = '<option value="">— Chọn —</option>' + o.map((v) => '<option value="' + esc(v) + '">' + esc(lab(v)) + "</option>").join("");
   if (o.map(String).indexOf(cur) >= 0) el.value = cur;
 }
 
+function months(a, b) {
+  if (!a || !b) return "";
+  const d1 = new Date(a), d2 = new Date(Date.parse(b) + 864e5); if (d2 <= d1) return "";
+  let m = (d2.getUTCFullYear() - d1.getUTCFullYear()) * 12 + d2.getUTCMonth() - d1.getUTCMonth();
+  if (d2.getUTCDate() < d1.getUTCDate()) m--; return m;
+}
+
+function onChange(fd) {
+  E(fd).classList.remove("err");
+  if (fd.name === "Mã CĐT" && META.ct && F("Tên chủ đầu tư")) { const v = val(fd), c = META.ct.find((x) => x[0] === v); E(F("Tên chủ đầu tư")).value = v ? (c ? c[1] : "⚠ Mã CĐT không tồn tại") : ""; }
+  if (/^Ngày (khởi công|hoàn thành) \(KH\)$/.test(fd.name) && F("Thời gian thực hiện (tháng)")) E(F("Thời gian thực hiện (tháng)")).value = months(val(F("Ngày khởi công (KH)")), val(F("Ngày hoàn thành (KH)")));
+  refresh();
+}
+
+function stCls(t) { return /⚠|Hủy|Quá hạn|Hết hạn/i.test(t) ? "st-r" : /^OK$|Đang|Còn hiệu lực|Hiệu lực/i.test(t) ? "st-g" : /Tạm|dừng|Sắp/i.test(t) ? "st-o" : /Hoàn|quyết toán|Đóng|Thanh lý/i.test(t) ? "st-s" : "st-b"; }
+
+function refresh() {
+  if (!META) return;
+  let tot = 0, done = 0;
+  META.secs.forEach((s, k) => {
+    const fs = s.f.map(F).filter((fd) => fd && !isRO(fd));
+    const filled = fs.filter((fd) => val(fd) !== "").length;
+    const ok = fs.length ? fs.filter((fd) => fd.req).every((fd) => val(fd) !== "") && filled === fs.length : true;
+    tot += fs.length; done += filled;
+    $("c_" + s.id).textContent = fs.length ? filled + "/" + fs.length + " trường" : "Tự tính";
+    const tab = Object(document.querySelector('.tab[data-s="' + s.id + '"]'));
+    tab.classList.toggle("done", ok); tab.querySelector(".n").textContent = ok ? "✓" : String(k + 1);
+  });
+  const names = (SUMMARY[META.tn] || [META.H[0], META.H[1]]).filter((n) => F(n)).slice(0, 5);
+  if (F("Kiểm tra") && names.indexOf("Kiểm tra") < 0) names.push("Kiểm tra");
+  $("sum").innerHTML = names.map((n) => {
+    const fd = F(n), v = val(fd);
+    const show = !v || v === "0" ? "—" : (/Trạng thái|Tình trạng|Kiểm tra|Hiệu lực/.test(n) ? '<span class="st ' + stCls(v) + '">' + esc(v) + "</span>" : esc(v) + (fd.type === "money" && /VNĐ/.test(n) ? " đ" : (OPT[n] && OPT[n].unit ? " " + OPT[n].unit : "")));
+    return '<div><div class="k">' + esc(n.replace(/ \(VNĐ\)/, "")) + '</div><div class="v" title="' + esc(v) + '">' + show + "</div></div>";
+  }).join("") + '<div><div class="k">Mức độ hoàn thiện</div><div class="v">' + done + "/" + tot + ' trường</div><div class="prog"><i style="width:' + (tot ? Math.round(done / tot * 100) : 0) + '%"></i></div></div>';
+  const key = val(META.fields[0]), nm = val(META.fields[1]);
+  $("crumb").innerHTML = esc(TABLES[META.tn].replace(/^\S+\s/, "")) + " / <b>" + esc(key || "Thêm mới") + "</b>";
+  $("fTitle").textContent = (key ? key + " · " : "") + (nm || "Bản ghi mới");
+  $("fSub").textContent = "Hoàn thiện " + done + "/" + tot + " trường" + (MODE === "edit" ? " · đang sửa" : " · thêm mới");
+}
+
+function fillPick() {
+  $("pick").innerHTML = '<option value="">— Chọn mã cần sửa —</option>' + META.rows.filter((r) => r[0] !== "").map((r) => '<option value="' + esc(r[0]) + '">' + esc(r[0] + (typeof r[1] === "string" && r[1] ? " – " + r[1] : "")) + "</option>").join("");
+}
+
+function nextCode() {
+  const k = META.fields[0]; if (k.formula) return "";
+  const ks = META.rows.map((r) => String(r[0])).filter(Boolean);
+  const m0 = ks.length ? ks[ks.length - 1].match(/^(.*?)(\d+)$/) : null; if (!m0) return "";
+  let mx = 0; ks.forEach((s) => { const m = s.match(/^(.*?)(\d+)$/); if (m && m[1] === m0[1]) mx = Math.max(mx, +m[2]); });
+  return m0[1] + String(mx + 1).padStart(m0[2].length, "0");
+}
+
+function setMode(m) {
+  MODE = m;
+  $("mNew").classList.toggle("on", m === "new"); $("mEdit").classList.toggle("on", m === "edit");
+  $("pick").hidden = m !== "edit"; $("pick").value = "";
+  $("badge").textContent = m === "new" ? "Thêm mới" : "Đang sửa"; $("badge").className = "badge " + (m === "new" ? "b-new" : "b-edit");
+  $("save").textContent = m === "new" ? "💾 Lưu" : "💾 Cập nhật";
+  clearForm();
+  if (m === "new") { const c = nextCode(); if (c) E(META.fields[0]).value = c; }
+  refresh();
+}
+
+function clearForm() {
+  if (!META) return;
+  META.editIndex = null;
+  META.fields.forEach((fd) => { const el = E(fd); if (el.id) { el.value = ""; el.classList.remove("err"); el.readOnly = isRO(fd); } });
+  META.fields.filter((fd) => fd.opts && !fd.formula).forEach(fillOpts);
+  refresh();
+}
+
+function setVal(fd, v) {
+  const el = E(fd); if (!el.id) return;
+  if (v === "" || v == null) { el.value = ""; return; }
+  if (fd.type === "date" && typeof v === "number") el.value = isRO(fd) ? fromSerial(v).split("-").reverse().join("/") : fromSerial(v);
+  else if (fd.type === "pct" && typeof v === "number") el.value = el.tagName === "SELECT" ? String(v) : (isRO(fd) ? +(v * 100).toFixed(2) + "%" : +(v * 100).toFixed(4));
+  else if (fd.type === "money" && typeof v === "number") el.value = fmt(v);
+  else {
+    if (el.tagName === "SELECT" && !Array.from(el.options).some((o) => Object(o).value === String(v))) el.insertAdjacentHTML("beforeend", '<option value="' + esc(v) + '">' + esc(v) + "</option>");
+    el.value = String(v);
+  }
+}
+
 function getVal(fd) {
-  const el = $("f" + fd.i); if (!el.id) return "";
-  const v = el.value; if (v === "" || v == null) return "";
+  const el = E(fd); if (!el.id) return "";
+  const v = String(el.value == null ? "" : el.value).trim(); if (v === "") return "";
   if (fd.type === "date") return toSerial(v);
   if (fd.type === "pct") return el.tagName === "SELECT" ? Number(v) : Number(v) / 100;
   if (fd.type === "money") return parseNum(v);
@@ -179,45 +373,30 @@ function getVal(fd) {
   return v;
 }
 
-function setVal(fd, v) {
-  const el = $("f" + fd.i); if (!el.id) return;
-  if (v === "" || v == null) { el.value = ""; return; }
-  if (fd.type === "date" && typeof v === "number") el.value = fromSerial(v);
-  else if (fd.type === "pct" && typeof v === "number") el.value = el.tagName === "SELECT" ? String(v) : (fd.formula ? +(v * 100).toFixed(2) + "%" : +(v * 100).toFixed(4));
-  else if (fd.type === "money" && typeof v === "number") el.value = fmt(v);
-  else {
-    if (el.tagName === "SELECT" && !Array.from(el.options).some((o) => Object(o).value === String(v))) el.insertAdjacentHTML("beforeend", "<option>" + esc(v) + "</option>");
-    el.value = String(v);
-  }
-}
-
-function clearForm() {
-  if (!META) return;
-  META.editIndex = null;
-  META.fields.forEach((fd) => setVal(fd, ""));
-  META.fields.filter((fd) => fd.opts && !fd.formula).forEach(fillOpts);
-  msg("", false);
-}
-
-async function loadKeys() {
+async function loadRow(key) {
   await Excel.run(async (ctx) => {
-    const k = ctx.workbook.tables.getItem(META.tn).columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
-    $("keys").innerHTML = k.values.map((v) => '<option value="' + esc(v[0]) + '">').join("");
+    const b = ctx.workbook.tables.getItem(META.tn).getDataBodyRange(); b.load("values"); await ctx.sync();
+    META.rows = b.values;
   });
+  const idx = META.rows.findIndex((r) => String(r[0]) === String(key));
+  if (idx < 0) throw new Error("Không tìm thấy " + key);
+  clearForm(); META.editIndex = idx;
+  const row = META.rows[idx];
+  META.fields.forEach((fd) => setVal(fd, row[fd.i]));
+  META.fields.filter((fd) => fd.dep && !fd.formula).forEach((fd) => { fillOpts(fd); setVal(fd, row[fd.i]); });
+  E(META.fields[0]).readOnly = true;
+  refresh(); msg("Đã tải " + key, false);
 }
 
-async function loadRow() {
-  const key = String($("key").value || "").trim(); if (!key) return msg("Chọn mã cần sửa", true);
+async function gotoRow() {
+  const key = val(META.fields[0]);
   await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(META.tn);
     const k = t.columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
     const idx = k.values.findIndex((v) => String(v[0]) === key);
-    if (idx < 0) throw new Error("Không tìm thấy " + key);
-    const r = t.getDataBodyRange().getRow(idx); r.load("values"); await ctx.sync();
-    META.editIndex = idx;
-    META.fields.forEach((fd) => setVal(fd, r.values[0][fd.i]));
-    META.fields.filter((fd) => fd.dep && !fd.formula).forEach((fd) => { fillOpts(fd); setVal(fd, r.values[0][fd.i]); });
-    msg("Đã tải " + key, false);
+    t.worksheet.activate();
+    (idx >= 0 ? t.getDataBodyRange().getRow(idx) : t.getHeaderRowRange()).select();
+    await ctx.sync();
   });
 }
 
@@ -238,12 +417,21 @@ async function ensureViews(ctx) {
 }
 
 async function save() {
-  const user = String($("user").value || "").trim(); if (!user) return msg("Nhập tên người nhập", true);
-  localStorage.setItem("nguoiNhap", user);
-  const miss = META.fields.filter((fd) => !fd.formula && AUDIT.indexOf(fd.name) < 0 && fd.req && getVal(fd) === "").map((fd) => fd.name);
-  if (miss.length) return msg("Thiếu: " + miss.join(", "), true);
-  const isNew = mode() === "new";
-  if (!isNew && META.editIndex == null) return msg("Chưa tải dòng cần sửa", true);
+  const user = String($("user").value || "").trim();
+  if (!user) { $("user").classList.add("err"); $("user").focus(); return msg("Nhập tên người nhập (mục Ghi chú & lưu vết)", true); }
+  localStorage.setItem("nguoiNhap", user); $("user").classList.remove("err");
+  const miss = META.fields.filter((fd) => !isRO(fd) && fd.req && getVal(fd) === "");
+  miss.forEach((fd) => E(fd).classList.add("err"));
+  if (miss.length) { E(miss[0]).focus(); return msg("Thiếu: " + miss.map((fd) => fd.name).join(", "), true); }
+  const isNew = MODE === "new";
+  if (!isNew && META.editIndex == null) return msg("Chọn mã cần sửa", true);
+  const k0 = META.fields[0];
+  if (isNew && !k0.formula && META.rows.some((r) => String(r[0]) === String(getVal(k0)))) { E(k0).classList.add("err"); return msg("Mã " + getVal(k0) + " đã tồn tại", true); }
+  const bad = META.fields.filter((fd) => fd.type === "date" && /^Ngày (kết thúc|hoàn thành|hết hạn|đáo hạn)/.test(fd.name)).find((fd) => {
+    const st = META.fields.find((x) => x.type === "date" && /^Ngày (bắt đầu|khởi công|phát hành|ký)/.test(x.name));
+    return st && getVal(st) !== "" && getVal(fd) !== "" && getVal(fd) < getVal(st);
+  });
+  if (bad) { E(bad).classList.add("err"); return msg(bad.name + " phải sau ngày bắt đầu", true); }
   await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(META.tn);
     let old = META.H.map(() => "");
@@ -263,14 +451,15 @@ async function save() {
     const key = row.values[0][0];
     if (SORT_AFTER.indexOf(META.tn) >= 0) { t.sort.apply([{ key: 0, ascending: true }]); await ctx.sync(); }
     await ensureViews(ctx);
-    const k = t.columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
-    const idx = k.values.findIndex((v) => v[0] === key); META.editIndex = idx;
-    const r2 = t.getDataBodyRange().getRow(idx); r2.load("values"); await ctx.sync();
-    META.fields.filter((fd) => fd.formula).forEach((fd) => setVal(fd, r2.values[0][fd.i]));
-    const kc = META.H.indexOf("Kiểm tra"); const kt = kc >= 0 ? r2.values[0][kc] : "OK";
-    msg((isNew ? "Đã thêm " : "Đã cập nhật ") + key + " – Kiểm tra: " + kt, String(kt).indexOf("⚠") >= 0);
+    const b = t.getDataBodyRange(); b.load("values"); await ctx.sync();
+    META.rows = b.values;
+    META.saved = key;
   });
-  await loadKeys();
+  const key = META.saved;
+  fillPick(); MODE = "edit"; setMode("edit"); $("pick").value = String(key);
+  await loadRow(key);
+  const kt = F("Kiểm tra") ? val(F("Kiểm tra")) : "OK";
+  msg((isNew ? "✅ Đã thêm " : "✅ Đã cập nhật ") + key + " – Kiểm tra: " + (kt || "OK"), kt.indexOf("⚠") >= 0);
 }
 </script>
 </body>
