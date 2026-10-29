@@ -151,7 +151,7 @@ const AUDIT = ["Ngày tạo", "Người tạo", "Ngày sửa", "Người sửa"]
 const C = { blue: ["#2563EB", "#EFF6FF"], green: ["#059669", "#ECFDF5"], violet: ["#7C3AED", "#F5F3FF"], orange: ["#EA580C", "#FFF7ED"], cyan: ["#0891B2", "#ECFEFF"], slate: ["#475569", "#F1F5F9"] }; const LOOKUP = { "Mã CĐT": { tbl: "tbl_CongTy", key: "Mã công ty", show: "Tên công ty", status: "Trạng thái", label: "Chủ đầu tư", hide: ["Tên chủ đầu tư"], add: "tbl_CongTy" } };
 const LOOKUP_T = { tbl_TMDT: { "Mã dự án": { tbl: "tbl_DuAn", key: "Mã dự án", show: "Tên dự án", label: "Tên dự án", hide: ["Tên dự án"] } } };
 const HIDE = { tbl_DuAn: ["Mã dự án"], tbl_CongTy: ["Mã công ty"], tbl_NhaThau: ["Mã nhà thầu"], tbl_TMDT: ["Cấp phê duyệt"] };
-const REQ_T = { tbl_TMDT: ["Mã dự án", "Loại phê duyệt", "Lần điều chỉnh"] };
+const REQ_T = { tbl_TMDT: ["Mã dự án", "Loại phê duyệt", "Lần điều chỉnh"] }; const EDITSEL = { tbl_TMDT: ["Mã dự án", "Loại phê duyệt", "Lần điều chỉnh"] }; const TM_PD = /^TMĐT phê duyệt$/i;
 const SRC = { "Địa điểm (xã/phường)": { tbl: "tbl_XaPhuong", key: "Xã/Phường", by: "Tỉnh/Thành" } };
 const UNIQUE = { tbl_DuAn: ["Tên dự án"], tbl_CongTy: ["Tên công ty", "Mã số thuế"], tbl_NhaThau: ["Tên nhà thầu", "Mã số thuế"] };
 const GATE = {
@@ -179,9 +179,9 @@ const LAYOUT = {
     { ic: "💰", t: "Tổng mức đầu tư", c: "cyan", f: ["TMĐT phê duyệt (VNĐ)", "TMĐT hiện hành (VNĐ)"], note: "ƒx Tự tính từ sheet TMDT (lần 0 = phê duyệt; Hiệu lực = Có = hiện hành). Không nhập tại đây." }
   ],
   tbl_TMDT: [
-    { ic: "🏗️", t: "Dự án", c: "blue", f: ["Mã dự án"] },
-    { ic: "📝", t: "Thông tin chung", c: "green", f: ["Loại phê duyệt", "Lần điều chỉnh", "Số quyết định", "Nội dung / Lý do"] },
+    { ic: "📝", t: "Thông tin chung", c: "blue", f: ["Mã dự án", "Loại phê duyệt", "Lần điều chỉnh", "Số quyết định", "Nội dung / Lý do"] },
     { ic: "📅", t: "Thời gian", c: "orange", f: ["Ngày quyết định"] },
+    // (đã bỏ mục "Dự án" riêng – Tên dự án nằm trong Thông tin chung)
     { ic: "ƒx", t: "Tự tính (chỉ xem)", c: "violet", f: ["Mã QĐ TMĐT", "Mã CĐT", "Giá trị trước thuế (VNĐ)", "Thuế GTGT (VNĐ)", "Giá trị sau thuế (VNĐ)", "Tăng/giảm so lần trước (VNĐ)", "Hiệu lực", "Kiểm tra"], note: "Giá trị tự tổng hợp từ sheet TMDT_CT theo Mã QĐ TMĐT – form giữ nguyên công thức, cập nhật kết quả sau khi Lưu." }
   ]
 };
@@ -223,8 +223,8 @@ Office.onReady(() => {
   document.addEventListener("mousedown", (e) => { if (CB && !CB.pop.contains(e.target) && !CB.sel.parentNode.contains(e.target)) cbClose(); });
   window.addEventListener("scroll", (e) => { if (CB && !CB.pop.contains(e.target)) cbClose(); }, true);
   window.addEventListener("resize", () => cbClose());
-  $("mNew").onclick = () => X() ? xMode("new") : setMode("new");
-  $("mEdit").onclick = () => X() ? xMode("edit") : setMode("edit");
+  $("mNew").onclick = () => META && META.ct === 1 ? ctMode("new") : X() ? xMode("new") : setMode("new");
+  $("mEdit").onclick = () => META && META.ct === 1 ? ctMode("edit") : X() ? xMode("edit") : setMode("edit");
   $("pick").onchange = () => run(() => $("pick").value ? loadRow($("pick").value) : clearForm());
   $("clear").onclick = () => META && META.ct === 1 ? ctReset() : X() ? xMode(MODE) : setMode(MODE);
   $("save").onclick = () => run(() => META && META.ct === 1 ? saveCT() : X() ? (XS.k === "nt" ? saveNT() : saveTT()) : save());
@@ -280,7 +280,7 @@ async function build(tn) {
     }
     for (const fd of fields) { const L = (LOOKUP_T[tn] || {})[fd.name] || LOOKUP[fd.name]; if (!L || fd.formula) continue; try { const lt = ctx.workbook.tables.getItem(L.tbl), lh = lt.getHeaderRowRange(), lb = lt.getDataBodyRange(); lh.load("values"); lb.load("values"); await ctx.sync(); const LH = lh.values[0], k = LH.indexOf(L.key), sh = LH.indexOf(L.show), st = L.status ? LH.indexOf(L.status) : -1; fd.lk = lb.values.filter((x) => x[k] !== "").map((x) => ({ v: String(x[k]), t: String(x[sh]), off: st >= 0 && x[st] !== "" && x[st] !== "Hoạt động" })); fd.opts = fd.lk.map((x) => x.v); fd.label = L.label; fd.addTo = L.add || null; (L.hide || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.hidden = true; }); } catch (e) { } }
     for (const fd of fields) { const S = SRC[fd.name]; if (!S || fd.formula || H.indexOf(S.by) < 0) continue; try { const st = ctx.workbook.tables.getItem(S.tbl), sh = st.getHeaderRowRange(), sb = st.getDataBodyRange(); sh.load("values"); sb.load("values"); await ctx.sync(); const SH = sh.values[0], a = SH.indexOf(S.by), b = SH.indexOf(S.key); fd.srcRows = sb.values.filter((x) => x[b] !== "").map((x) => [String(x[a]), String(x[b])]); fd.opts = fd.srcRows.map((x) => x[1]); fd.dep = S.by; fd.depMode = "src"; fd.free = true; } catch (e) { } }
-    (HIDE[tn] || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.off = true; });
+    (HIDE[tn] || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.off = true; }); if (EDITSEL[tn]) { const fl = fields.find((y) => y.name === EDITSEL[tn][2]); if (fl && !fl.formula) { fl.opts = []; fl.free = true; } }
     let ct = null;
     return { tn: tn, H: H, fields: fields, rows: body.values, editIndex: null, ct: ct };
   });
@@ -375,7 +375,7 @@ function gates() {
   META.secs.filter((s) => s.log).forEach((s) => s.f.forEach((n) => { logF[n] = 1; }));
   META.fields.forEach((fd) => {
     if (isRO(fd) || fd.off || fd.hidden) return; const el = E(fd); if (!el.id) return;
-    let lock = elk;
+    let lock = elk; const ES = EDITSEL[META.tn]; if (!lock && ES && MODE === "edit" && META.editIndex == null && ES.indexOf(fd.name) < 0) lock = "Chọn Tên dự án, Loại phê duyệt và Lần điều chỉnh để tải dữ liệu cần sửa";
     G.forEach((g) => {
       const hit = g.rest ? (!named[fd.name] && !logF[fd.name]) : (g.f || []).indexOf(fd.name) >= 0; if (!hit || lock) return;
       const open = (g.filled || []).every((n) => F(n) && val(F(n)) !== "") && (g.valid || []).every((n) => okField(F(n)));
@@ -400,12 +400,12 @@ function lanSuggest() {
 }
 function lanApply(user) {
   const c = LAN[META.tn]; if (!c) return; const fl = F(c.lan), lo = F(c.loai); if (!fl || !lo || !F(c.da)) return;
-  const show = c.show.test(val(lo)), w = $("w" + fl.i); if (w.style) w.style.display = show ? "" : "none";
+  const show = c.show.test(val(lo)) || (MODE === "edit" && (E(fl).options || []).length > 2), w = $("w" + fl.i); if (w.style) w.style.display = show ? "" : "none";
   const s = lanSuggest();
   if (user && MODE === "new") E(fl).value = s ? String(s.next) : "";
-  const h = $("h" + fl.i); if (h.id) h.textContent = !s ? "" : (s.last < 0 ? "Dự án chưa có QĐ TMĐT – đề xuất lần " + s.next : "Đã có đến lần " + s.last + " – đề xuất lần " + s.next);
+  const h = $("h" + fl.i); if (h.id) h.textContent = MODE === "edit" ? "" : !s ? "" : (s.last < 0 ? "Dự án chưa có QĐ TMĐT – đề xuất lần " + s.next : "Đã có đến lần " + s.last + " – đề xuất lần " + s.next);
 }
-// ===== Dropdown tự dựng (thay <select> gốc: tránh lỗi mở ra tự đóng & chọn nhầm giá trị dưới con trỏ) =====
+function tmOptsHook(fd) { const ES = META && EDITSEL[META.tn]; if (!ES || ES.indexOf(fd.name) < 0) return null; const fa = F(ES[0]), fo = F(ES[1]), fl = F(ES[2]); if (!fa || !fo || !fl) return null; const ed = MODE === "edit", da = val(fa), lo = val(fo); const rows = META.rows.filter((r, k) => r[0] !== "" && (ed || k !== META.editIndex)); const uq = (a) => a.filter((v, k) => v !== "" && a.indexOf(v) === k); if (fd === fa) return ed ? (fd.opts || []).filter((v) => rows.some((r) => String(r[fa.i]) === String(v))) : null; const rd = rows.filter((r) => String(r[fa.i]) === da); if (fd === fo) { if (!da) return ed ? [] : null; if (ed) return uq(rd.map((r) => String(r[fo.i]))); return rd.some((r) => TM_PD.test(String(r[fo.i]))) ? (fd.opts || []).filter((v) => !TM_PD.test(String(v))) : null; } if (!da || !lo) return []; if (ed) return uq(rd.filter((r) => String(r[fo.i]) === lo).map((r) => String(r[fl.i]))).sort((a, b) => Number(a) - Number(b)); const s = lanSuggest(); return s ? [String(s.next)] : []; } function tmCascade(n) { const ES = EDITSEL[META.tn]; if (!ES) return; const fa = F(ES[0]), fo = F(ES[1]), fl = F(ES[2]); if (!fa || !fo || !fl) return; const ed = MODE === "edit"; const one = (fd) => { if (!ed || val(fd)) return; const el = E(fd), o = Array.from(el.options || []).filter((x) => x.value !== ""); if (o.length === 1) { el.value = o[0].value; cbSync(el); } }; if (n === ES[0]) { fillOpts(fo); one(fo); } if (n !== ES[2]) { fillOpts(fl); one(fl); } if (!ed) return; const da = val(fa), lo = val(fo), la = val(fl); const k = da && lo && la !== "" ? META.rows.findIndex((r) => r[0] !== "" && String(r[fa.i]) === da && String(r[fo.i]) === lo && String(r[fl.i]) === la) : -1; if (k >= 0) { if (k !== META.editIndex) run(() => loadRow(String(META.rows[k][0]))); } else if (META.editIndex != null) { META.editIndex = null; META.fields.forEach((x) => { if (ES.indexOf(x.name) < 0) { const el = E(x); if (el.id) el.value = ""; } }); } } // ===== Dropdown tự dựng (thay <select> gốc: tránh lỗi mở ra tự đóng & chọn nhầm giá trị dưới con trỏ) =====
 let CB = null;
 const norm = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
 function cbWrap(sel) {
@@ -468,7 +468,7 @@ function cbKey(e) {
 
 function fillOpts(fd) {
   const el = E(fd); if (!el.id) return;
-  const cur = el.value; let o = fd.opts;
+  const cur = el.value; let o = fd.opts; const ho = tmOptsHook(fd); if (ho) o = ho;
   if (fd.dep) {
     const d = F(fd.dep), dv = d ? val(d) : "";
     if (dv) o = fd.depMode === "src" ? fd.srcRows.filter((x) => x[0] === dv).map((x) => x[1]) : fd.depMode === "eq" ? fd.opts.filter((v, k) => String(fd.depList[k]) === dv) : fd.opts.filter((v) => String(v).indexOf(dv + fd.sep) === 0);
@@ -490,7 +490,7 @@ function onChange(fd) {
   E(fd).classList.remove("err");
   if (fd.addTo && val(fd) === "__add__") { E(fd).value = ""; cbSync(E(fd)); return goAdd(fd); }
   lkHint(fd);
-  const lc = LAN[META.tn]; if (lc && (fd.name === lc.da || fd.name === lc.loai)) lanApply(true);
+  const lc = LAN[META.tn]; if (EDITSEL[META.tn] && EDITSEL[META.tn].indexOf(fd.name) >= 0) tmCascade(fd.name); if (lc && (fd.name === lc.da || fd.name === lc.loai)) lanApply(true);
   if (/^Ngày (khởi công|hoàn thành) \(KH\)$/.test(fd.name) && F("Thời gian thực hiện (tháng)")) E(F("Thời gian thực hiện (tháng)")).value = months(val(F("Ngày khởi công (KH)")), val(F("Ngày hoàn thành (KH)")));
   refresh();
 }
@@ -539,7 +539,7 @@ function nextCode() {
 function setMode(m) {
   MODE = m;
   $("mNew").classList.toggle("on", m === "new"); $("mEdit").classList.toggle("on", m === "edit");
-  const pw = $("pickW"); (pw.id ? pw : $("pick")).hidden = m !== "edit"; $("pick").value = "";
+  const pw = $("pickW"); (pw.id ? pw : $("pick")).hidden = m !== "edit" || !!(META && EDITSEL[META.tn]); $("pick").value = "";
   $("badge").textContent = m === "new" ? "Thêm mới" : "Đang sửa"; $("badge").className = "badge " + (m === "new" ? "b-new" : "b-edit");
   $("save").textContent = m === "new" ? "💾 Lưu" : "💾 Cập nhật";
   clearForm();
@@ -587,7 +587,7 @@ async function loadRow(key) {
   clearForm(); META.editIndex = idx;
   const row = META.rows[idx];
   META.fields.forEach((fd) => setVal(fd, row[fd.i]));
-  META.fields.filter((fd) => fd.dep && !fd.formula).forEach((fd) => { fillOpts(fd); setVal(fd, row[fd.i]); });
+  META.fields.filter((fd) => fd.dep && !fd.formula).forEach((fd) => { fillOpts(fd); setVal(fd, row[fd.i]); }); if (EDITSEL[META.tn]) EDITSEL[META.tn].forEach((n) => { const x = F(n); if (x) { fillOpts(x); setVal(x, row[x.i]); cbSync(E(x)); } });
   E(META.fields[0]).readOnly = true;
   refresh(); msg("Đã tải " + key, false);
 }
@@ -630,7 +630,7 @@ async function save() {
   if (miss.length) { fx(E(miss[0])); return msg("Thiếu: " + miss.map((fd) => fd.name).join(", "), true); }
   const du = META.fields.find((fd) => dupOf(fd)); if (du) { E(du).classList.add("err"); fx(E(du)); return msg(du.name + " đã tồn tại – vui lòng nhập tên khác", true); }
   const lc = LAN[META.tn];
-  if (lc && F(lc.lan) && F(lc.da)) { const fl = F(lc.lan), fa = F(lc.da), lv = getVal(fl), dv = getVal(fa); if (dv !== "" && lv !== "" && META.rows.some((r, k) => k !== META.editIndex && String(r[fa.i]) === String(dv) && r[fl.i] !== "" && Number(r[fl.i]) === Number(lv))) { E(fl).classList.add("err"); return msg("Dự án đã có lần điều chỉnh " + lv + " – chọn số khác", true); } }
+  if (lc && F(lc.lan) && F(lc.da)) { const fl = F(lc.lan), fa = F(lc.da), lv = getVal(fl), dv = getVal(fa); if (dv !== "" && lv !== "" && META.rows.some((r, k) => k !== META.editIndex && String(r[fa.i]) === String(dv) && r[fl.i] !== "" && Number(r[fl.i]) === Number(lv))) { E(fl).classList.add("err"); return msg("Dự án đã có lần điều chỉnh " + lv + " – chọn số khác", true); } } if (EDITSEL[META.tn]) { const fa = F("Mã dự án"), fo = F("Loại phê duyệt"); if (fa && fo && TM_PD.test(String(getVal(fo))) && META.rows.some((r, k) => k !== META.editIndex && r[0] !== "" && String(r[fa.i]) === String(getVal(fa)) && TM_PD.test(String(r[fo.i])))) { E(fo).classList.add("err"); cbSyncAll(); return msg("Dự án đã có TMĐT phê duyệt (chỉ được 1) – chọn loại khác hoặc dùng Sửa", true); } }
   const isNew = MODE === "new";
   if (!isNew && META.editIndex == null) return msg("Chọn mã cần sửa", true);
   const k0 = META.fields[0];
@@ -667,7 +667,7 @@ async function save() {
   fillPick(); MODE = "edit"; setMode("edit"); $("pick").value = String(key);
   await loadRow(key);
   const kt = F("Kiểm tra") ? val(F("Kiểm tra")) : "OK";
-  msg((isNew ? "✅ Đã thêm " : "✅ Đã cập nhật ") + key + " – Kiểm tra: " + (kt || "OK"), kt.indexOf("⚠") >= 0);
+  const later = META.tn === "tbl_TMDT" && /Chưa có chi tiết/.test(kt); msg((isNew ? "✅ Đã thêm " : "✅ Đã cập nhật ") + key + (later ? " – chưa có TMĐT chi tiết, có thể bổ sung sau tại Dự án › TMĐT chi tiết" : " – Kiểm tra: " + (kt || "OK")), !later && kt.indexOf("⚠") >= 0);
   if (isNew && RET && RET.tn !== META.tn) await backRet(String(key));
 }
 // ===== Menu 2 tầng & quay lại form trước =====
@@ -732,7 +732,7 @@ async function buildCT() {
   const d = await ctLoad();
   const cp = Object.create(null), H = d.cp.H, iC = H.indexOf("Mã chi phí"), iN = H.indexOf("Tên khoản mục"), iL = H.indexOf("Mã nhập liệu");
   d.cp.R.forEach((r) => { const c = String(r[iC]); if (c) cp[c] = { c: c, n: String(r[iN]), leaf: r[iL] === "Có" }; });
-  CT = Object.assign(d, { cpm: cp, codes: Object.keys(cp).sort(), q: null, ma: "", lines: [], adding: 0 });
+  CT = Object.assign(d, { cpm: cp, codes: Object.keys(cp).sort(), q: null, ma: "", lines: [], adding: 0, mode: "new" });
   META = { tn: CT_TN, ct: 1, H: d.ct.H, fields: [], rows: d.ct.R, editIndex: null, secs: [
     { id: "s1", ic: "📝", t: "Thông tin", c: "blue" }, { id: "s2", ic: "💰", t: "Chi phí", c: "cyan" }, { id: "s3", ic: "🕒", t: "Lưu vết", c: "slate" }] };
   navDraw(); renderCT();
@@ -743,20 +743,20 @@ function secHtml(s, k, inner) {
 }
 function renderCT() {
   const S = META.secs;
-  $("h1").textContent = "Hồ sơ TMĐT chi tiết"; $("mbar").style.display = "none"; backBar(); $("save").textContent = "💾 Lưu chi tiết";
+  $("h1").textContent = "Hồ sơ TMĐT chi tiết"; $("mbar").style.display = ""; { const pw = $("pickW"); (pw.id ? pw : $("pick")).hidden = true; } backBar(); ctModeUI();
   $("tabs").innerHTML = S.map((s, k) => '<div class="tab" data-s="' + s.id + '" style="--c:' + C[s.c][0] + ";--cl:" + C[s.c][1] + '"><span class="n">' + (k + 1) + "</span>" + s.ic + " " + s.t + "</div>").join("");
   const ro = (id, lb) => '<div><label for="' + id + '">' + lb + ' <span class="fx">ƒx</span></label><input id="' + id + '" readonly tabindex="-1" class="calc" placeholder="Tự điền theo QĐ TMĐT"></div>';
   $("frm").innerHTML = secHtml(S[0], 0,
       '<div class="full"><label for="ctDA">Tên dự án <span class="req">*</span></label><select id="ctDA"></select><div class="hint" id="ctDAh"></div></div>' +
       '<div><label for="ctLoai">Loại phê duyệt <span class="req">*</span></label><select id="ctLoai" data-empty="Chọn Tên dự án trước"></select></div>' +
       '<div id="ctLanW"><label for="ctLan">Lần điều chỉnh <span class="req">*</span></label><select id="ctLan" data-empty="Chọn Loại phê duyệt trước"></select></div>' +
-      ro("ctSo", "Số quyết định") + ro("ctNgay", "Ngày quyết định") + ro("ctMa", "Mã QĐ TMĐT") + ro("ctHL", "Hiệu lực")) +
+      ro("ctSo", "Số quyết định") + ro("ctNgay", "Ngày quyết định") + ro("ctHL", "Hiệu lực")) +
     secHtml(S[1], 1, '<div class="full" id="ctGrid"></div>') +
     secHtml(S[2], 2, '<div><label for="user">Người nhập <span class="req">*</span></label><input id="user" placeholder="Tên người nhập"></div><div></div>');
   $("user").value = localStorage.getItem("nguoiNhap") || ""; $("user").oninput = () => { avatar(); ctSum(); }; avatar();
   document.querySelectorAll(".tab").forEach((t) => { Object(t).onclick = () => { $(Object(t).dataset.s).scrollIntoView({ behavior: "smooth", block: "start" }); setTab(Object(t).dataset.s); }; });
   const iM = ixOf(CT.da, "Mã dự án"), iT = ixOf(CT.da, "Tên dự án");
-  $("ctDA").innerHTML = '<option value="">— Chọn —</option>' + CT.da.R.filter((r) => r[iM] !== "").map((r) => '<option value="' + esc(r[iM]) + '">' + esc(r[iT]) + "</option>").join("");
+  ctDAopts();
   $("ctDA").onchange = () => { $("ctLoai").value = ""; $("ctLan").value = ""; ctOpts(); };
   $("ctLoai").onchange = () => { $("ctLan").value = ""; ctOpts(); };
   $("ctLan").onchange = () => ctOpts();
@@ -765,7 +765,7 @@ function renderCT() {
 }
 function ctOpts() {
   const Q = CT.qd, iD = ixOf(Q, "Mã dự án"), iLo = ixOf(Q, "Loại phê duyệt"), iLa = ixOf(Q, "Lần điều chỉnh"), da = $("ctDA").value;
-  const rows = Q.R.filter((r) => da && String(r[iD]) === da).sort((a, b) => Number(a[iLa]) - Number(b[iLa]));
+  const rows = Q.R.filter((r) => da && String(r[iD]) === da && ctOk(r)).sort((a, b) => Number(a[iLa]) - Number(b[iLa]));
   const loais = []; rows.forEach((r) => { const v = String(r[iLo]); if (v && loais.indexOf(v) < 0) loais.push(v); });
   const keep = (id, list, lab) => {
     const el = $(id), cur = el.value;
@@ -777,11 +777,11 @@ function ctOpts() {
   const r2 = rows.filter((r) => lo && String(r[iLo]) === lo), lans = r2.map((r) => String(r[iLa]));
   const la = hide ? (lans[lans.length - 1] || "") : keep("ctLan", lans, (v) => "Lần " + v);
   const h = $("ctDAh"), no = !!da && !rows.length;
-  h.textContent = no ? "⚠ Dự án chưa có QĐ TMĐT – nhập tại Dự án › QĐ TMĐT trước" : ""; h.className = "hint" + (no ? " warn" : "");
+  const nP = Array.from($("ctDA").options || []).filter((o) => o.value !== "").length; const hm = !nP ? (CT.mode === "edit" ? "Chưa có QĐ TMĐT nào đã nhập chi tiết – dùng Thêm mới" : "Tất cả QĐ TMĐT đã có chi tiết – dùng Sửa để điều chỉnh (hoặc nhập QĐ mới tại Dự án › QĐ TMĐT)") : no ? "⚠ Không có QĐ TMĐT phù hợp cho dự án này" : ""; h.textContent = hm; h.className = "hint" + (hm ? " warn" : "");
   const q = lo && la !== "" ? (r2.find((r) => String(r[iLa]) === la) || null) : null;
   if (q !== CT.q) ctPick(q); else ctDraw();
 }
-function ctPick(q) {
+function ctHas(ma) { return CT.ct.R.some((x) => String(x[0]) === ma); } function ctOk(r) { return r[0] !== "" && (CT.mode === "edit") === ctHas(String(r[0])); } function ctDAopts() { const el = $("ctDA"), cur = el.value, iM = ixOf(CT.da, "Mã dự án"), iT = ixOf(CT.da, "Tên dự án"), iD = ixOf(CT.qd, "Mã dự án"), ok = Object.create(null); CT.qd.R.forEach((r) => { if (ctOk(r)) ok[String(r[iD])] = 1; }); const L = CT.da.R.filter((r) => r[iM] !== "" && ok[String(r[iM])]); el.innerHTML = '<option value="">— Chọn —</option>' + L.map((r) => '<option value="' + esc(r[iM]) + '">' + esc(r[iT]) + "</option>").join(""); el.value = L.some((r) => String(r[iM]) === cur) ? cur : ""; cbSync(el); } function ctModeUI() { const m = CT.mode; $("mNew").classList.toggle("on", m === "new"); $("mEdit").classList.toggle("on", m === "edit"); $("save").textContent = m === "new" ? "💾 Lưu chi tiết" : "💾 Cập nhật chi tiết"; } function ctMode(m) { CT.mode = m; ctModeUI(); ["ctDA", "ctLoai", "ctLan"].forEach((id) => { $(id).value = ""; }); CT.q = undefined; ctDAopts(); ctOpts(); } function ctPick(q) {
   const Q = CT.qd; CT.q = q; CT.ma = q ? String(q[0]) : ""; CT.adding = 0;
   $("ctSo").value = q ? String(q[ixOf(Q, "Số quyết định")]) : ""; $("ctNgay").value = q ? dmy(q[ixOf(Q, "Ngày quyết định")]) : "";
   $("ctMa").value = CT.ma; $("ctHL").value = q ? String(q[ixOf(Q, "Hiệu lực")]) : "";
@@ -864,7 +864,7 @@ function ctSum() {
   $("crumb").innerHTML = "TMĐT chi tiết / <b>" + esc(CT.ma || "Chọn QĐ TMĐT") + "</b>";
   $("fTitle").textContent = CT.ma ? CT.ma + " · " + nm : "Chọn QĐ TMĐT";
   $("fSub").textContent = n + " khoản mục chi tiết";
-  const ed = CT.lines.some((l) => l.ri != null); $("badge").textContent = ed ? "Đang sửa" : "Thêm mới"; $("badge").className = "badge " + (ed ? "b-edit" : "b-new");
+  const ed = CT.mode === "edit"; $("badge").textContent = ed ? "Đang sửa" : "Thêm mới"; $("badge").className = "badge " + (ed ? "b-edit" : "b-new");
   const ok2 = n > 0 && CT.lines.every((l) => ctKids(l.code) || (l.gv !== "" && l.gv != null && l.vat !== "" && l.vat != null));
   const st = [!!CT.q, ok2, !!String($("user").value || "").trim()];
   $("c_s1").textContent = CT.q ? "Đã chọn QĐ" : "Chưa chọn"; $("c_s2").textContent = n + " dòng"; $("c_s3").textContent = "";
@@ -905,7 +905,7 @@ async function saveCT() {
     if (nA + nU + nD) { t.sort.apply([{ key: 0, ascending: true }, { key: iC, ascending: true }]); await ctx.sync(); }
   });
   const d = await ctLoad(); CT.da = d.da; CT.qd = d.qd; CT.ct = d.ct; META.rows = d.ct.R;
-  const q = CT.qd.R.find((r) => String(r[0]) === CT.ma) || null; CT.q = undefined; ctPick(q);
+  const q = CT.qd.R.find((r) => String(r[0]) === CT.ma) || null; CT.mode = ctHas(CT.ma) ? "edit" : "new"; ctModeUI(); ctDAopts(); CT.q = undefined; ctOpts();
   const s = q ? q[ixOf(CT.qd, "Giá trị sau thuế (VNĐ)")] : 0;
   msg(nA + nU + nD ? "✅ Đã lưu " + CT.ma + ": thêm " + nA + ", sửa " + nU + ", xoá " + nD + " dòng · TMĐT sau thuế " + fmt(s) + " đ" : "Không có thay đổi để lưu", false);
 }
