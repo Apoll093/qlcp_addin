@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TaskPaneApp">
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>dc205310-1622-4bcd-a8eb-700a1a28f88e</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.1.0.0</Version>
   <ProviderName>apoll093</ProviderName>
   <DefaultLocale>vi-VN</DefaultLocale>
   <DisplayName DefaultValue="QLCP – Form nhập liệu"/>
@@ -19,4 +19,67 @@
     <SourceLocation DefaultValue="https://apoll093.github.io/qlcp_addin/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="QLCP.GS.Title"/>
+            <Description resid="QLCP.GS.Desc"/>
+            <LearnMoreUrl resid="QLCP.Url.Help"/>
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="QLCP.Tab">
+              <Group id="QLCP.Group">
+                <Label resid="QLCP.Group.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="QLCP.Icon16"/>
+                  <bt:Image size="32" resid="QLCP.Icon32"/>
+                  <bt:Image size="80" resid="QLCP.Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="QLCP.OpenForm">
+                  <Label resid="QLCP.Btn.Label"/>
+                  <Supertip>
+                    <Title resid="QLCP.Btn.Label"/>
+                    <Description resid="QLCP.Btn.Tip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="QLCP.Icon16"/>
+                    <bt:Image size="32" resid="QLCP.Icon32"/>
+                    <bt:Image size="80" resid="QLCP.Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Office.AutoShowTaskpaneWithDocument</TaskpaneId>
+                    <SourceLocation resid="QLCP.Url.Taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="QLCP.Tab.Label"/>
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="QLCP.Icon16" DefaultValue="https://apoll093.github.io/qlcp_addin/icon-16.png"/>
+        <bt:Image id="QLCP.Icon32" DefaultValue="https://apoll093.github.io/qlcp_addin/icon-32.png"/>
+        <bt:Image id="QLCP.Icon80" DefaultValue="https://apoll093.github.io/qlcp_addin/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="QLCP.Url.Taskpane" DefaultValue="https://apoll093.github.io/qlcp_addin/taskpane.html"/>
+        <bt:Url id="QLCP.Url.Help" DefaultValue="https://github.com/apoll093/qlcp_addin"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="QLCP.Tab.Label" DefaultValue="QLCP"/>
+        <bt:String id="QLCP.Group.Label" DefaultValue="Quản lý chi phí"/>
+        <bt:String id="QLCP.Btn.Label" DefaultValue="Form nhập liệu"/>
+        <bt:String id="QLCP.GS.Title" DefaultValue="QLCP – Form nhập liệu"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="QLCP.Btn.Tip" DefaultValue="Mở form nhập liệu (dự án, hợp đồng, nghiệm thu, thanh toán...). Form tự mở lại khi mở file này."/>
+        <bt:String id="QLCP.GS.Desc" DefaultValue="Bấm tab QLCP → Form nhập liệu để mở form."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
 </OfficeApp>
