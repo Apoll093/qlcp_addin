@@ -94,6 +94,11 @@ input:disabled,textarea:disabled{background:#F1F5F9;color:#94A3B8;cursor:not-all
 .ctg .del{border:0;background:none;color:#DC2626;cursor:pointer;font-size:13px;padding:3px 2px}
 .ctg .ro{display:block;text-align:right;padding:4px 5px}
 .addbtn{margin:6px 6px 4px 0;border:1px dashed var(--pri);background:#EFF6FF;color:var(--pri);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600}
+.subh{grid-column:1/-1;font-weight:700;font-size:12px;color:var(--c);border-bottom:1px dashed var(--line);padding:6px 0 2px}
+.chkl{display:flex;flex-direction:column;gap:4px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px;background:#fff}
+.chk{display:flex;gap:6px;align-items:flex-start;font-size:12px;cursor:pointer;padding:2px 0}.chk span{flex:1}.chk i{float:right;font-style:normal;color:var(--mut);white-space:nowrap;margin-left:6px}
+table.inv{width:100%;border-collapse:collapse;font-size:12px}table.inv th{text-align:left;color:var(--mut);font-weight:600;padding:2px 3px}table.inv td{padding:2px 3px}table.inv input{width:100%}
+.krow{display:flex;gap:6px;align-items:center}.krow input{flex:1}
 </style>
 </head>
 <body>
@@ -145,18 +150,25 @@ const SORT_AFTER = ["tbl_HDThanhVien", "tbl_NghiemThu", "tbl_TaiKhoanNT"];
 const AUDIT = ["Ngày tạo", "Người tạo", "Ngày sửa", "Người sửa"];
 const C = { blue: ["#2563EB", "#EFF6FF"], green: ["#059669", "#ECFDF5"], violet: ["#7C3AED", "#F5F3FF"], orange: ["#EA580C", "#FFF7ED"], cyan: ["#0891B2", "#ECFEFF"], slate: ["#475569", "#F1F5F9"] }; const LOOKUP = { "Mã CĐT": { tbl: "tbl_CongTy", key: "Mã công ty", show: "Tên công ty", status: "Trạng thái", label: "Chủ đầu tư", hide: ["Tên chủ đầu tư"], add: "tbl_CongTy" } };
 const LOOKUP_T = { tbl_TMDT: { "Mã dự án": { tbl: "tbl_DuAn", key: "Mã dự án", show: "Tên dự án", label: "Tên dự án", hide: ["Tên dự án"] } } };
-const HIDE = { tbl_DuAn: ["Mã dự án"], tbl_TMDT: ["Cấp phê duyệt"] };
+const HIDE = { tbl_DuAn: ["Mã dự án"], tbl_CongTy: ["Mã công ty"], tbl_NhaThau: ["Mã nhà thầu"], tbl_TMDT: ["Cấp phê duyệt"] };
 const REQ_T = { tbl_TMDT: ["Mã dự án", "Loại phê duyệt", "Lần điều chỉnh"] };
 const SRC = { "Địa điểm (xã/phường)": { tbl: "tbl_XaPhuong", key: "Xã/Phường", by: "Tỉnh/Thành" } };
-const UNIQUE = { tbl_DuAn: ["Tên dự án"], tbl_CongTy: ["Tên công ty", "Mã số thuế"] };
+const UNIQUE = { tbl_DuAn: ["Tên dự án"], tbl_CongTy: ["Tên công ty", "Mã số thuế"], tbl_NhaThau: ["Tên nhà thầu", "Mã số thuế"] };
 const GATE = {
+  tbl_CongTy: [{ rest: 1, filled: ["Mã số thuế", "Tên công ty"], msg: "Nhập Mã số thuế và Tên công ty để mở" }],
+  tbl_NhaThau: [{ rest: 1, filled: ["Mã số thuế", "Tên nhà thầu"], msg: "Nhập Mã số thuế và Tên nhà thầu để mở" }],
   tbl_DuAn: [{ f: ["Mã CĐT"], filled: ["Tên dự án"], msg: "Nhập Tên dự án để mở" }, { rest: 1, valid: ["Tên dự án", "Mã CĐT"], msg: "Nhập Tên dự án (không trùng) và chọn Chủ đầu tư hợp lệ để mở" }],
   tbl_TMDT: [{ f: ["Loại phê duyệt"], valid: ["Mã dự án"], msg: "Chọn Tên dự án để mở" }, { rest: 1, valid: ["Mã dự án", "Loại phê duyệt"], msg: "Chọn Tên dự án và Loại phê duyệt để mở" }]
 };
 const LAN = { tbl_TMDT: { lan: "Lần điều chỉnh", loai: "Loại phê duyệt", da: "Mã dự án", show: /sơ bộ|điều chỉnh/i } };
 const LAYOUT = {
+  tbl_NhaThau: [
+    { ic: "👷", t: "Thông tin chung", c: "blue", f: ["Mã số thuế", "Tên nhà thầu", "Tên viết tắt", "Lĩnh vực chính", "Địa chỉ", "Người đại diện", "Điện thoại", "Email"] },
+    { ic: "🏅", t: "Năng lực & đánh giá", c: "green", f: ["Hạng chứng chỉ năng lực", "Xếp hạng nội bộ", "Được phép giao thầu"] },
+    { ic: "ƒx", t: "Tự tính (chỉ xem)", c: "violet", f: ["Số TK đăng ký"], note: "Số TK đăng ký đếm từ sheet DM_TK_NHATHAU (Đang sử dụng = Có)." }
+  ],
   tbl_CongTy: [
-    { ic: "🏛️", t: "Thông tin công ty", c: "blue", f: ["Mã công ty", "Tên công ty", "Tên viết tắt", "Mã số thuế", "Địa chỉ trụ sở", "Trạng thái"] },
+    { ic: "🏛️", t: "Thông tin công ty", c: "blue", f: ["Mã số thuế", "Tên công ty", "Tên viết tắt", "Địa chỉ trụ sở", "Trạng thái"] },
     { ic: "ƒx", t: "Tự tính (chỉ xem)", c: "violet", f: ["Số dự án"], note: "Số dự án đếm từ sheet DM_DUAN theo Mã CĐT." }
   ],
   tbl_DuAn: [
@@ -184,9 +196,11 @@ const OPT = {
   "Tên dự án": { req: 1, full: 1, ph: "VD: Khu đô thị ABC Riverside" }, "Mã CĐT": { full: 1 },
   "Quy mô / Công suất": { full: 1, ph: "VD: 35 tầng nổi + 4 tầng hầm" }, "Số QĐ chấp thuận chủ trương": { ph: "VD: 123/QĐ-UBND" },
   "Diện tích đất (m²)": { unit: "m²" }, "Tổng DT sàn XD (m²)": { unit: "m²" }, "Thời gian thực hiện (tháng)": { unit: "tháng" },
-  "Tên công ty": { req: 1, full: 1, ph: "VD: Công ty CP Phát triển ABC" }, "Địa chỉ trụ sở": { full: 1 }, "Mã số thuế": { ph: "VD: 0101234567" },
+  "Tên công ty": { req: 1, full: 1, ph: "VD: Công ty CP Phát triển ABC" }, "Tên nhà thầu": { req: 1, full: 1 }, "Địa chỉ": { full: 1 }, "Địa chỉ trụ sở": { full: 1 }, "Mã số thuế": { req: 1, ph: "VD: 0101234567 – Enter để tra cứu" },
   "Ghi chú": { full: 1, area: 1 }, "Nội dung": { full: 1 }, "Diễn giải": { full: 1 }, "Kiểm tra": { full: 1 }
 };
+const MST = { tbl_CongTy: { name: "Tên công ty", addr: "Địa chỉ trụ sở", st: "Trạng thái" }, tbl_NhaThau: { name: "Tên nhà thầu", addr: "Địa chỉ", rep: "Người đại diện" } };
+const PICKBY = { tbl_CongTy: ["Tên công ty", "tên công ty"], tbl_NhaThau: ["Tên nhà thầu", "nhà thầu"] };
 let META = null, MODE = "new", CUR = "tbl_DuAn", RET = null;
 const $ = (id) => Object(document.getElementById(id));
 const colNum = (s) => s.split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
@@ -209,11 +223,11 @@ Office.onReady(() => {
   document.addEventListener("mousedown", (e) => { if (CB && !CB.pop.contains(e.target) && !CB.sel.parentNode.contains(e.target)) cbClose(); });
   window.addEventListener("scroll", (e) => { if (CB && !CB.pop.contains(e.target)) cbClose(); }, true);
   window.addEventListener("resize", () => cbClose());
-  $("mNew").onclick = () => setMode("new");
-  $("mEdit").onclick = () => setMode("edit");
+  $("mNew").onclick = () => X() ? xMode("new") : setMode("new");
+  $("mEdit").onclick = () => X() ? xMode("edit") : setMode("edit");
   $("pick").onchange = () => run(() => $("pick").value ? loadRow($("pick").value) : clearForm());
-  $("clear").onclick = () => META && META.ct ? ctReset() : setMode(MODE);
-  $("save").onclick = () => run(() => META && META.ct ? saveCT() : save());
+  $("clear").onclick = () => META && META.ct === 1 ? ctReset() : X() ? xMode(MODE) : setMode(MODE);
+  $("save").onclick = () => run(() => META && META.ct === 1 ? saveCT() : X() ? (XS.k === "nt" ? saveNT() : saveTT()) : save());
   $("goto").onclick = () => run(gotoRow);
   window.addEventListener("scroll", spy);
   try { Office.context.document.settings.set("Office.AutoShowTaskpaneWithDocument", true); Office.context.document.settings.saveAsync(); } catch (e) { } run(() => build(CUR));
@@ -228,7 +242,7 @@ async function listValues(ctx, n) {
 }
 
 async function build(tn) {
-  CUR = tn; cbClose(); if (tn === CT_TN) return buildCT();
+  CUR = tn; cbClose(); if (tn === CT_TN) return buildCT(); if (tn === NT_TN) return buildNT(); if (tn === TT_TN) return buildTT();
   META = await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(tn);
     const h = t.getHeaderRowRange(); h.load("values,columnIndex");
@@ -333,7 +347,7 @@ function render() {
   });
   META.fields.filter((fd) => fd.dep).forEach((fd) => { const el = E(F(fd.dep)); if (el.id) el.addEventListener("change", () => fillOpts(fd)); });
   document.querySelectorAll("#frm select").forEach(cbWrap);
-  setTab("s1"); stickTabs();
+  mstBind(); setTab("s1"); stickTabs();
 }
 
 function setTab(id) { document.querySelectorAll(".tab").forEach((t) => Object(t).classList.toggle("on", Object(t).dataset.s === id)); }
@@ -355,13 +369,13 @@ function okField(fd) {
   return !dupOf(fd);
 }
 function gates() {
-  const G = GATE[META.tn]; if (!G) return;
+  const G = GATE[META.tn]; if (!G) return; const elk = PICKBY[META.tn] && MODE === "edit" && META.editIndex == null ? "Chọn " + PICKBY[META.tn][1] + " cần sửa để mở" : "";
   const named = Object.create(null), logF = Object.create(null), why = Object.create(null);
   G.forEach((g) => (g.f || []).concat(g.filled || [], g.valid || []).forEach((n) => { named[n] = 1; }));
   META.secs.filter((s) => s.log).forEach((s) => s.f.forEach((n) => { logF[n] = 1; }));
   META.fields.forEach((fd) => {
     if (isRO(fd) || fd.off || fd.hidden) return; const el = E(fd); if (!el.id) return;
-    let lock = "";
+    let lock = elk;
     G.forEach((g) => {
       const hit = g.rest ? (!named[fd.name] && !logF[fd.name]) : (g.f || []).indexOf(fd.name) >= 0; if (!hit || lock) return;
       const open = (g.filled || []).every((n) => F(n) && val(F(n)) !== "") && (g.valid || []).every((n) => okField(F(n)));
@@ -511,7 +525,7 @@ function refresh() {
 }
 
 function fillPick() {
-  $("pick").innerHTML = '<option value="">— Chọn mã cần sửa —</option>' + META.rows.filter((r) => r[0] !== "").map((r) => '<option value="' + esc(r[0]) + '">' + esc(r[0] + (typeof r[1] === "string" && r[1] ? " – " + r[1] : "")) + "</option>").join("");
+  const pb = PICKBY[META.tn], pi = pb ? META.H.indexOf(pb[0]) : -1; $("pick").innerHTML = '<option value="">— ' + (pb ? "Chọn " + pb[1] + " cần sửa" : "Chọn mã cần sửa") + ' —</option>' + META.rows.filter((r) => r[0] !== "").map((r) => '<option value="' + esc(r[0]) + '">' + esc(pi >= 0 ? String(r[pi]) : r[0] + (typeof r[1] === "string" && r[1] ? " – " + r[1] : "")) + "</option>").join("");
 }
 
 function nextCode() {
@@ -579,7 +593,7 @@ async function loadRow(key) {
 }
 
 async function gotoRow() {
-  const key = META.ct ? CT.ma : val(META.fields[0]);
+  const key = META.ct === 1 ? CT.ma : X() ? XS.ma : val(META.fields[0]);
   await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(META.tn);
     const k = t.columns.getItemAt(0).getDataBodyRange(); k.load("values"); await ctx.sync();
@@ -686,7 +700,7 @@ function setRaw(fd, v) {
   el.value = v; lkHint(fd); if (el.tagName === "SELECT") cbSync(el);
 }
 async function backRet(nk) {
-  const R = RET; RET = null; if (!R) return;
+  const R = RET; RET = null; if (!R) return; if (R.custom) return ttRestore(R, nk);
   MODE = R.mode === "edit" && R.key ? "edit" : "new";
   await build(R.tn);
   if (MODE === "edit") { $("pick").value = R.key; cbSync($("pick")); await loadRow(R.key); }
@@ -894,6 +908,501 @@ async function saveCT() {
   const q = CT.qd.R.find((r) => String(r[0]) === CT.ma) || null; CT.q = undefined; ctPick(q);
   const s = q ? q[ixOf(CT.qd, "Giá trị sau thuế (VNĐ)")] : 0;
   msg(nA + nU + nD ? "✅ Đã lưu " + CT.ma + ": thêm " + nA + ", sửa " + nU + ", xoá " + nD + " dòng · TMĐT sau thuế " + fmt(s) + " đ" : "Không có thay đổi để lưu", false);
+}
+// ===== Mã số thuế: kiểm tra trùng → tra cứu pha.vn =====
+const apiKey = () => localStorage.getItem("phaKey") || "";
+function mstBind() {
+  const c = MST[META.tn], fd = F("Mã số thuế"); if (!c || !fd) return;
+  const el = E(fd); if (!el.id) return;
+  el.addEventListener("change", () => run(mstCheck));
+  el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); run(mstCheck); } });
+  const w = $("w" + fd.i); if (w.insertAdjacentHTML) w.insertAdjacentHTML("afterend", '<div class="full" id="apiW"></div>');
+  apiDraw(false);
+}
+function apiDraw(open) {
+  const w = $("apiW"); if (!w.id) return; const k = apiKey();
+  w.innerHTML = '<div class="hint" id="mstH"></div>' + (open || !k
+    ? '<label for="apiK">🔑 API Key pha.vn (chỉ lưu trên máy này)</label><div class="krow"><input id="apiK" type="password" placeholder="Dán API Key (X-API-KEY)" value="' + esc(k) + '"><button type="button" class="link" id="apiS">Lưu key</button></div><div class="hint">Dùng để tự lấy tên, địa chỉ theo Mã số thuế. Đăng ký key tại pha.vn.</div>'
+    : '<div class="hint">🔑 Đã có API Key pha.vn · <a href="#" id="apiE">đổi key</a></div>');
+  if ($("apiS").id) $("apiS").onclick = () => { localStorage.setItem("phaKey", String($("apiK").value || "").trim()); apiDraw(false); msg("Đã lưu API Key pha.vn trên máy này", false); };
+  if ($("apiE").id) $("apiE").onclick = (e) => { e.preventDefault(); apiDraw(true); };
+}
+function mstHint(t, bad) { const h = $("mstH"); if (h.id) { h.textContent = t; h.className = "hint" + (bad ? " warn" : ""); } }
+async function mstCheck() {
+  const c = MST[META.tn], fd = F("Mã số thuế"); if (!c || !fd || MODE !== "new") return;
+  const v = val(fd).replace(/\s+/g, ""); E(fd).value = v; if (!v) return mstHint("");
+  const k = META.rows.findIndex((r) => r[0] !== "" && String(r[fd.i]).replace(/\s+/g, "").toLowerCase() === v.toLowerCase());
+  if (k >= 0) {
+    const key = String(META.rows[k][0]), nm = String(META.rows[k][META.H.indexOf(c.name)] || key);
+    setMode("edit"); $("pick").value = key; cbSync($("pick")); await loadRow(key);
+    return msg("⚠ Mã số thuế " + v + " đã có (" + nm + ") – đã tải dữ liệu sẵn có, chuyển sang Sửa", true);
+  }
+  if (!/^\d{10}(-\d{3})?$/.test(v)) return mstHint("⚠ Mã số thuế gồm 10 số (chi nhánh: 10 số-3 số)", true);
+  const key = apiKey(); if (!key) { apiDraw(true); return mstHint("MST chưa có trong dữ liệu. Nhập API Key pha.vn để tự lấy thông tin (hoặc nhập tay).", true); }
+  mstHint("⏳ Đang tra cứu pha.vn…");
+  let d = null;
+  try {
+    const r = await fetch("https://pha.vn/api/v1/tax?q=" + encodeURIComponent(v), { headers: { "X-API-KEY": key, "Accept": "application/json" } });
+    d = await r.json().catch(() => null);
+    if (!r.ok) throw new Error(({ 401: "API Key không hợp lệ", 403: "Gói API chưa mở tra cứu MST", 404: "Không tìm thấy MST", 429: "Vượt hạn mức gọi API" })[r.status] || ("HTTP " + r.status));
+  } catch (e) { return mstHint("⚠ Không lấy được từ pha.vn: " + e.message + " – vui lòng nhập tay", true); }
+  const x = (d && (d.data || (d.items && d.items[0]) || d)) || {};
+  const pk = (ks) => { for (const n of ks) if (x[n]) return String(x[n]).trim(); return ""; };
+  const nm = pk(["name", "company_name", "ten"]), ad = pk(["address", "dia_chi"]), rp = pk(["representative", "legal_representative", "owner", "nguoi_dai_dien"]), st = pk(["status_text", "trang_thai"]);
+  if (!nm && !ad) return mstHint("⚠ pha.vn không trả dữ liệu cho MST này – vui lòng nhập tay", true);
+  const put = (n, s) => { const f = F(n); if (f && s && E(f).id) setRaw(f, s); };
+  put(c.name, nm); put(c.addr, ad); if (c.rep) put(c.rep, rp);
+  const sf = c.st ? F(c.st) : null;
+  if (sf && sf.opts && st) { const o = sf.opts.map(String), t = /ngừng|giải thể|đóng|tạm/i.test(st) ? o.find((s) => /ngừng|tạm/i.test(s)) : o.find((s) => /hoạt động/i.test(s) && !/ngừng/i.test(s)); if (t) setRaw(sf, t); }
+  refresh(); mstHint("✓ Đã lấy thông tin từ pha.vn" + (st ? " · " + st : "") + " – kiểm tra lại trước khi lưu");
+}
+
+// ===== Nghiệm thu & Thanh toán – form riêng =====
+const NT_TN = "tbl_NghiemThu", TT_TN = "tbl_ThanhToan", HDN_TN = "tbl_HoaDon";
+const TT2NT = { "Đợt": "Giai đoạn", "Vật tư": "Vật tư", "Quyết toán": "Quyết toán", "Bảo hành": "Bảo hành" };
+const GD2TT = { "Tạm ứng": "Tạm ứng", "Thanh toán KLHT": "Đợt", "Thanh toán quyết toán": "Quyết toán", "Hoàn trả giữ lại bảo hành": "Bảo hành" };
+let XS = null;
+const X = () => !!(META && (META.ct === "nt" || META.ct === "tt"));
+const N0 = (v) => Number(v) || 0;
+const pTxt = (v) => (v === "" || v == null || isNaN(v)) ? "" : +(Number(v) * 100).toFixed(2) + "%";
+const pIn = (id) => { const s = String($(id).value == null ? "" : $(id).value).trim(); return s === "" ? "" : Number(s) / 100; };
+const mIn = (id) => { const s = parseNum($(id).value == null ? "" : $(id).value); return s === "" ? "" : Number(s); };
+const roS = (id, v) => { const e = $(id); if (e.id) e.value = v === "" || v == null ? "" : (fmt(Math.round(v)) || "0"); };
+const shw = (id, on) => { const w = $(id); if (w.style) w.style.display = on ? "" : "none"; };
+const xS = (id, empty) => '<select id="' + id + '"' + (empty ? ' data-empty="' + esc(empty) + '"' : "") + "></select>";
+const xM = (id) => '<input id="' + id + '" class="num" inputmode="decimal" placeholder="0">';
+const xR = (id, ph) => '<input id="' + id + '" readonly tabindex="-1" class="calc num" placeholder="' + (ph || "Tự tính") + '">';
+const xP = (id) => '<div class="unit"><input id="' + id + '" type="number" step="0.01" class="num"><span>%</span></div>';
+const xF = (id, lb, ctl, cls, req, fx) => '<div id="w_' + id + '" class="' + (cls || "") + '"><label for="' + id + '">' + esc(lb) + (req ? ' <span class="req">*</span>' : "") + (fx ? ' <span class="fx">ƒx</span>' : "") + "</label>" + ctl + '<div class="hint" id="' + id + 'H"></div></div>';
+async function xLoad(names) {
+  return Excel.run(async (ctx) => {
+    const L = Object.create(null), o = Object.create(null);
+    names.forEach((n) => { const t = ctx.workbook.tables.getItem(n), h = t.getHeaderRowRange(), b = t.getDataBodyRange(); h.load("values"); b.load("values"); L[n] = [h, b]; });
+    await ctx.sync();
+    names.forEach((n) => { const H = L[n][0].values[0]; o[n] = { H: H, R: L[n][1].values, ix: (c) => H.indexOf(c) }; });
+    o.vat = await listValues(ctx, "lst_VAT");
+    return o;
+  });
+}
+const xg = (T, r, c) => r ? r[T.ix(c)] : "";
+function xOpts(id, list, ph) {
+  const el = $(id); if (!el.id) return ""; const cur = String(el.value || "");
+  el.innerHTML = '<option value="">' + esc(ph || "— Chọn —") + "</option>" + list.map((x) => '<option value="' + esc(x[0]) + '">' + esc(x[1]) + "</option>").join("");
+  el.value = list.some((x) => String(x[0]) === cur) ? cur : ""; cbSync(el); return el.value;
+}
+function xShell(title, inner) {
+  const S = META.secs; $("h1").textContent = title; $("mbar").style.display = ""; const pw = $("pickW"); (pw.id ? pw : $("pick")).hidden = true; backBar();
+  $("tabs").innerHTML = S.map((s, k) => '<div class="tab" data-s="' + s.id + '" style="--c:' + C[s.c][0] + ";--cl:" + C[s.c][1] + '"><span class="n">' + (k + 1) + "</span>" + s.ic + " " + s.t + "</div>").join("");
+  const log = '<div class="full"><label for="xGC">Ghi chú</label><textarea id="xGC" rows="2" placeholder="Ghi chú thêm (nếu có)"></textarea></div><div><label for="user">Người nhập <span class="req">*</span></label><input id="user" placeholder="Tên người nhập"></div>' + xF("xMa", "Mã bản ghi", xR("xMa", "Tự sinh khi lưu"), "", 0, 1);
+  $("frm").innerHTML = S.map((s, k) => secHtml(s, k, inner[k] + (k === S.length - 1 ? log : ""))).join("");
+  $("user").value = localStorage.getItem("nguoiNhap") || ""; $("user").oninput = avatar; avatar();
+  document.querySelectorAll(".tab").forEach((t) => { Object(t).onclick = () => { $(Object(t).dataset.s).scrollIntoView({ behavior: "smooth", block: "start" }); setTab(Object(t).dataset.s); }; });
+  document.querySelectorAll("#frm select").forEach(cbWrap);
+  document.querySelectorAll("#frm input.num").forEach((e) => { const el = Object(e); if (el.readOnly || el.type === "number") return; el.addEventListener("blur", () => { const v = parseNum(el.value); el.value = v === "" ? "" : fmt(v); }); });
+  $("frm").oninput = () => xRefresh(); $("frm").onchange = () => xRefresh();
+  setTab("s1"); stickTabs();
+}
+function xHeadInit() {
+  const D = XS.d.tbl_DuAn, iM = D.ix("Mã dự án"), iT = D.ix("Tên dự án");
+  xOpts("xDA", D.R.filter((r) => r[iM] !== "").map((r) => [String(r[iM]), String(r[iT])]));
+  $("xDA").addEventListener("change", () => { $("xHD").value = ""; $("xTV").value = ""; xHeadOpts(); xHead(); });
+  $("xHD").addEventListener("change", () => { $("xTV").value = ""; xHeadOpts(); xHead(); });
+  $("xTV").addEventListener("change", () => { xHeadOpts(); xHead(); });
+  xHeadOpts();
+}
+function xHeadOpts() {
+  const H = XS.d.tbl_HopDong, V = XS.d.tbl_TVHienHanh, da = $("xDA").value;
+  xOpts("xHD", da ? H.R.filter((r) => r[0] !== "" && String(xg(H, r, "Mã dự án")) === da).map((r) => [String(r[0]), String(xg(H, r, "Số hợp đồng")) + " – " + String(xg(H, r, "Tên nhà thầu"))]) : []);
+  const hd = $("xHD").value, tv = hd ? V.R.filter((r) => r[0] !== "" && String(xg(V, r, "Mã hợp đồng")) === hd && String(r[0]) !== hd) : [];
+  XS.tvs = tv.length; shw("w_xTV", XS.tvs > 0);
+  xOpts("xTV", tv.map((r) => [String(r[0]), String(xg(V, r, "Vai trò")) + " – " + String(xg(V, r, "Tên nhà thầu"))]));
+}
+const xUnit = () => { const hd = $("xHD").value; return !hd ? "" : XS.tvs ? String($("xTV").value || "") : hd; };
+const xTVr = (u) => XS.d.tbl_TVHienHanh.R.find((r) => u && String(r[0]) === u) || null;
+const xHDr = () => XS.d.tbl_HopDong.R.find((r) => String(r[0]) === $("xHD").value) || null;
+const xNet = () => { const V = XS.d.tbl_HDHienHanh, r = V.R.find((x) => String(x[0]) === $("xHD").value); return !!r && N0(xg(V, r, "Giá trị Net hiện hành (VNĐ)")) > 0; };
+const xHead = () => (XS.k === "nt" ? ntHead : ttHead)();
+function xRefresh() { if (!X() || !XS) return; (XS.k === "nt" ? ntCalc : ttCalc)(); cbSyncAll(); }
+function xUser() {
+  const u = String($("user").value || "").trim();
+  if (!u) { $("user").classList.add("err"); $("user").focus(); msg("Nhập tên người nhập (mục Ghi chú & lưu vết)", true); return ""; }
+  localStorage.setItem("nguoiNhap", u); $("user").classList.remove("err"); return u;
+}
+function xNeed(list) {
+  const miss = list.filter((x) => String($(x[0]).value == null ? "" : $(x[0]).value).trim() === "");
+  miss.forEach((x) => { const e = $(x[0]); if (e.classList) { e.classList.add("err"); cbSync(e); } });
+  if (miss.length) { fx($(miss[0][0])); msg("Thiếu: " + miss.map((x) => x[1]).join(", "), true); return false; }
+  return true;
+}
+function xLock(ids, lock) { ids.forEach((id) => { const e = $(id); if (!e.id) return; e.disabled = !!lock; const w = $("w_" + id); if (w.classList) w.classList.toggle("locked", !!lock); }); }
+function xLockMsg(secs, why) { secs.forEach((s) => { const e = $("lk_" + s); if (e.id) { e.textContent = why ? "🔒 " + why : ""; e.style.display = why ? "block" : "none"; } }); }
+function xSum(items, st, title, sub) {
+  $("sum").innerHTML = items.map((x) => '<div><div class="k">' + esc(x[0]) + '</div><div class="v" title="' + esc(x[1]) + '">' + esc(x[1] === "" || x[1] == null ? "—" : x[1]) + "</div></div>").join("");
+  st.forEach((ok, k) => { const tab = Object(document.querySelector('.tab[data-s="s' + (k + 1) + '"]')); if (tab.classList) { tab.classList.toggle("done", !!ok); tab.querySelector(".n").textContent = ok ? "✓" : String(k + 1); } });
+  $("crumb").innerHTML = esc(TABLES[META.tn].replace(/^\S+\s/, "")) + " / <b>" + esc(XS.ma || (MODE === "edit" ? "Chọn hồ sơ cần sửa" : "Thêm mới")) + "</b>";
+  $("fTitle").textContent = title; $("fSub").textContent = sub;
+}
+function xMode(m) {
+  MODE = m; $("mNew").classList.toggle("on", m === "new"); $("mEdit").classList.toggle("on", m === "edit");
+  $("badge").textContent = m === "new" ? "Thêm mới" : "Đang sửa"; $("badge").className = "badge " + (m === "new" ? "b-new" : "b-edit");
+  $("save").textContent = m === "new" ? "💾 Lưu" : "💾 Cập nhật";
+  XS.ei = null; XS.ma = ""; META.editIndex = null; XS.dotUser = false;
+  document.querySelectorAll("#frm input, #frm select, #frm textarea").forEach((e) => { const el = Object(e); if (el.id === "user" || el.type === "checkbox") return; el.value = ""; el.classList.remove("err"); });
+  document.querySelectorAll(".edonly").forEach((e) => { Object(e).style.display = m === "edit" ? "" : "none"; });
+  (XS.k === "nt" ? ntReset : ttReset)();
+  xHeadOpts(); xHead();
+}
+function xNextCode(T, hd, suf) {
+  let mx = 0; T.R.forEach((r) => { const s = String(r[0]); if (s.indexOf(hd + suf) === 0) { const n = parseInt(s.slice((hd + suf).length), 10); if (!isNaN(n)) mx = Math.max(mx, n); } });
+  return hd + suf + String(mx + 1).padStart(2, "0");
+}
+async function xWrite(tn, key, vals, user, opt) {
+  return Excel.run(async (ctx) => {
+    const t = ctx.workbook.tables.getItem(tn), b = t.getDataBodyRange(), h = t.getHeaderRowRange(); h.load("values"); b.load("values,formulas"); await ctx.sync();
+    const H = h.values[0], FX = H.map((n, i) => { const r = b.formulas.find((x) => String(x[i]).charAt(0) === "="); return r ? r[i] : null; });
+    const ri = b.values.findIndex((r) => String(r[0]) === String(key)), isNew = ri < 0, old = isNew ? H.map(() => "") : b.values[ri];
+    const out = H.map((n, i) => {
+      if (Object.prototype.hasOwnProperty.call(vals, n)) return vals[n];
+      if (FX[i]) return FX[i];
+      if (n === "Ngày tạo") return isNew ? today() : old[i]; if (n === "Người tạo") return isNew ? user : old[i];
+      if (n === "Ngày sửa") return isNew ? "" : today(); if (n === "Người sửa") return isNew ? "" : user;
+      return old[i];
+    });
+    if (!isNew) b.getRow(ri).formulas = [out];
+    else { const bl = b.values.findIndex((r) => r.every((v) => v === "" || v === "⚠")); if (bl >= 0 && b.values[bl][0] === "") b.getRow(bl).formulas = [out]; else t.rows.add(null, [out]); }
+    await ctx.sync();
+    if (opt && opt.sort) { t.sort.apply([{ key: 0, ascending: true }]); await ctx.sync(); }
+    if (opt && opt.inv) await xInvWrite(ctx, key, opt.inv, user);
+    await ensureViews(ctx);
+    return String(key);
+  });
+}
+async function xInvWrite(ctx, gd, list, user) {
+  const t = ctx.workbook.tables.getItem(HDN_TN), b = t.getDataBodyRange(), h = t.getHeaderRowRange(); h.load("values"); b.load("values,formulas"); await ctx.sync();
+  const H = h.values[0], ix = (n) => H.indexOf(n), FX = H.map((n, i) => { const r = b.formulas.find((x) => String(x[i]).charAt(0) === "="); return r ? r[i] : null; });
+  const cur = []; b.values.forEach((r, k) => { if (String(r[ix("Mã giao dịch")]) === gd) cur.push(k); });
+  let mx = 0; b.values.forEach((r) => { const s = String(r[0]); if (s.indexOf(gd + "-HĐ") === 0) mx = Math.max(mx, parseInt(s.slice(gd.length + 3), 10) || 0); });
+  const mk = (x, old) => H.map((n, i) => {
+    if (FX[i]) return FX[i];
+    if (n === "Mã hoá đơn") return old ? old[i] : gd + "-HĐ" + String(++mx).padStart(2, "0");
+    if (n === "Mã giao dịch") return gd; if (n === "Số hoá đơn") return x.so; if (n === "Ngày phát hành") return x.ng ? toSerial(x.ng) : ""; if (n === "Giá trị phát hành (VNĐ)") return x.gt;
+    if (n === "Ngày tạo") return old ? old[i] : today(); if (n === "Người tạo") return old ? old[i] : user;
+    if (n === "Ngày sửa") return old ? today() : ""; if (n === "Người sửa") return old ? user : "";
+    return old ? old[i] : "";
+  });
+  const blank = () => H.map((n, i) => FX[i] || "");
+  const add = [];
+  list.forEach((x, j) => { if (j < cur.length) b.getRow(cur[j]).formulas = [mk(x, b.values[cur[j]])]; else add.push(mk(x, null)); });
+  await ctx.sync();
+  const extra = cur.slice(list.length).sort((p, q) => q - p);
+  let rows = b.values.length;
+  for (const k of extra) { if (rows > 1) { t.rows.getItemAt(k).delete(); rows--; } else b.getRow(k).formulas = [blank()]; }
+  await ctx.sync();
+  if (add.length) {
+    b.load("values"); await ctx.sync();
+    const bl = b.values.length === 1 && b.values[0][0] === "" && b.values[0][1] === "" ? 0 : -1;
+    if (bl === 0) { b.getRow(0).formulas = [add.shift()]; await ctx.sync(); }
+    if (add.length) { t.rows.add(null, add); await ctx.sync(); }
+  }
+}
+// ----- Nghiệm thu -----
+async function buildNT() {
+  const d = await xLoad(["tbl_DuAn", "tbl_HopDong", "tbl_HDHienHanh", "tbl_TVHienHanh", NT_TN]);
+  XS = { k: "nt", d: d, T: d[NT_TN], ma: "", ei: null, tvs: 0 };
+  META = { tn: NT_TN, ct: "nt", H: XS.T.H, fields: [], rows: XS.T.R, editIndex: null, secs: [
+    { id: "s1", ic: "📝", t: "Thông tin chung", c: "blue" }, { id: "s2", ic: "📅", t: "Thời gian", c: "orange" }, { id: "s3", ic: "💰", t: "Giá trị", c: "cyan" },
+    { id: "s4", ic: "ƒx", t: "Tự tính (chỉ xem)", c: "violet" }, { id: "s5", ic: "🕒", t: "Ghi chú & lưu vết", c: "slate" }] };
+  navDraw(); renderNT(); xMode(MODE === "edit" ? "edit" : "new");
+  msg("Đã tải Nghiệm thu – " + XS.T.R.filter((x) => x[0] !== "").length + " dòng", false);
+}
+function renderNT() {
+  const lk = (p, s) => xF("xL1g" + s, "Lũy kế NT trước thuế đến trước đợt này" + p, xR("xL1g" + s), "half " + (s ? "net" : ""), 0, 1) + xF("xL1t" + s, "Lũy kế tiền VAT đến trước đợt này" + p, xR("xL1t" + s), s ? "net" : "", 0, 1) + xF("xL1s" + s, "Lũy kế NT sau thuế đến trước đợt này" + p, xR("xL1s" + s), s ? "net" : "", 0, 1)
+    + xF("xL2g" + s, "Lũy kế NT trước thuế sau đợt này" + p, xR("xL2g" + s), s ? "net" : "", 0, 1) + xF("xL2t" + s, "Lũy kế tiền VAT sau đợt này" + p, xR("xL2t" + s), s ? "net" : "", 0, 1) + xF("xL2s" + s, "Lũy kế NT sau thuế sau đợt này" + p, xR("xL2s" + s), s ? "net" : "", 0, 1)
+    + xF("xTL" + s, "Tỷ lệ hoàn thành lũy kế" + p, xR("xTL" + s), s ? "net" : "", 0, 1);
+  xShell("Hồ sơ Nghiệm thu", [
+    xF("xDA", "Tên dự án", xS("xDA"), "full", 1) + xF("xHD", "Số hợp đồng", xS("xHD", "Chọn Tên dự án trước"), "full", 1) + xF("xTV", "Thành viên liên danh", xS("xTV", "Chọn Số hợp đồng trước"), "full", 1)
+      + xF("xLoai", "Loại nghiệm thu", xS("xLoai"), "", 1) + xF("xDot", "Đợt", '<input id="xDot" type="number" min="1" step="1" class="num">' + xS("xDotE", "Chọn Số hợp đồng trước"), "", 1)
+      + xF("xSo", "Số biên bản", '<input id="xSo" placeholder="VD: BB-NT 01/…">', "", 1) + xF("xND", "Nội dung nghiệm thu", '<input id="xND" placeholder="VD: Nghiệm thu khối lượng hoàn thành đợt 1…">', "full", 0),
+    xF("xNgay", "Ngày nghiệm thu", '<input id="xNgay" type="date">', "", 1),
+    '<div class="subh" id="xPLh">Pháp lý (Hợp đồng)</div>' + xF("xG", "Giá trị nghiệm thu trước thuế", xM("xG"), "", 1) + xF("xVat", "Thuế VAT", xS("xVat"), "", 1) + xF("xTien", "Tiền VAT", xR("xTien"), "", 0, 1) + xF("xGS", "Giá trị nghiệm thu sau thuế", xR("xGS"), "", 0, 1)
+      + '<div class="subh net">Thực</div>' + xF("xGN", "Giá trị nghiệm thu trước thuế (thực)", xM("xGN"), "net", 1) + xF("xVatN", "Thuế VAT (thực)", xR("xVatN"), "net", 0, 1) + xF("xTienN", "Tiền VAT (thực)", xR("xTienN"), "net", 0, 1) + xF("xGSN", "Giá trị nghiệm thu sau thuế (thực)", xR("xGSN"), "net", 0, 1),
+    '<div class="subh" id="xPLh2">Pháp lý (Hợp đồng)</div>' + lk("", "") + '<div class="subh net">Thực</div>' + lk(" (thực)", "N"),
+    ""]);
+  xHeadInit();
+  xOpts("xLoai", ["Giai đoạn", "Vật tư", "Quyết toán", "Bảo hành"].map((x) => [x, x]));
+  xOpts("xVat", XS.d.vat.map((v) => [String(v), pTxt(v)]));
+  $("xDot").addEventListener("input", () => { XS.dotUser = true; });
+  $("xDotE").addEventListener("change", () => { const v = $("xDotE").value; ntLoad(v === "" ? null : Number(v)); });
+}
+function ntReset() { XS.dotUser = false; shw("xDotEW", MODE === "edit"); shw("xDot", MODE !== "edit"); }
+function ntRows(u) { const T = XS.T, iU = T.ix("Mã đơn vị TC"); return u ? T.R.map((r, k) => [r, k]).filter((x) => x[0][0] !== "" && String(x[0][iU]) === u) : []; }
+function ntHead() {
+  const T = XS.T, u = xUnit(), ed = MODE === "edit", iD = T.ix("Đợt"), rows = ntRows(u);
+  shw("xDotEW", ed); shw("xDot", !ed);
+  if (ed) {
+    xOpts("xDotE", rows.sort((a, b) => N0(a[0][iD]) - N0(b[0][iD])).map((x) => [String(x[1]), "Đợt " + x[0][iD] + " · " + x[0][T.ix("Số biên bản")] + (x[0][T.ix("Loại nghiệm thu")] ? " · " + x[0][T.ix("Loại nghiệm thu")] : "")]), u ? "— Chọn đợt cần sửa —" : "— Chọn —");
+    if (XS.ei != null && String($("xDotE").value) !== String(XS.ei)) ntLoad(null);
+    $("xDotH").textContent = u ? rows.length + " đợt đã nghiệm thu" : "";
+  } else {
+    const mx = rows.reduce((m, x) => Math.max(m, N0(x[0][iD])), 0);
+    if (u && !XS.dotUser) $("xDot").value = String(mx + 1); if (!u) $("xDot").value = "";
+    $("xDotH").textContent = u ? (mx ? "Đã có đến đợt " + mx + " – đề xuất đợt " + (mx + 1) : "Chưa có nghiệm thu – đề xuất đợt 1") : "";
+    const V = XS.d.tbl_HDHienHanh, h = V.R.find((x) => String(x[0]) === $("xHD").value);
+    if (h && $("xVat").value === "") { $("xVat").value = String(xg(V, h, "Thuế suất VAT")); cbSync($("xVat")); }
+  }
+  xRefresh();
+}
+function ntLoad(k) {
+  const T = XS.T, r = k == null ? null : T.R[k], g = (c) => xg(T, r, c);
+  XS.ei = k; META.editIndex = k; XS.ma = r ? String(r[0]) : "";
+  $("xLoai").value = r ? String(g("Loại nghiệm thu") || "") : ""; $("xSo").value = r ? String(g("Số biên bản")) : ""; $("xND").value = r ? String(g("Nội dung")) : "";
+  $("xNgay").value = r && typeof g("Ngày nghiệm thu") === "number" ? fromSerial(g("Ngày nghiệm thu")) : "";
+  $("xG").value = r ? fmt(g("Giá trị NT trước thuế (VNĐ)")) : ""; $("xGN").value = r ? fmt(g("Giá trị NT Net trước thuế (VNĐ)")) : "";
+  $("xVat").value = r ? String(g("Thuế suất VAT")) : ""; $("xGC").value = r ? String(g("Ghi chú")) : ""; $("xMa").value = XS.ma;
+  cbSyncAll(); xRefresh();
+}
+function ntCalc() {
+  const T = XS.T, u = xUnit(), net = xNet(), ed = MODE === "edit";
+  document.querySelectorAll("#frm .net").forEach((e) => { Object(e).style.display = net ? "" : "none"; });
+  $("xPLh").textContent = net ? "⚖️ Pháp lý (Hợp đồng)" : "📄 Hợp đồng"; $("xPLh2").textContent = $("xPLh").textContent;
+  const vat = $("xVat").value === "" ? 0 : Number($("xVat").value), g = N0(mIn("xG")), gn = N0(mIn("xGN")), t = Math.round(g * vat), tn = Math.round(gn * vat);
+  roS("xTien", g ? t : ""); roS("xGS", g ? g + t : ""); $("xVatN").value = $("xVat").value === "" ? "" : pTxt(vat); roS("xTienN", gn ? tn : ""); roS("xGSN", gn ? gn + tn : "");
+  const dot = ed ? (XS.ei != null ? N0(T.R[XS.ei][T.ix("Đợt")]) : 0) : N0($("xDot").value);
+  const a = { g: 0, t: 0, gn: 0, tn: 0 };
+  ntRows(u).forEach((x) => { const r = x[0]; if (x[1] === XS.ei || N0(r[T.ix("Đợt")]) >= dot) return; a.g += N0(r[T.ix("Giá trị NT trước thuế (VNĐ)")]); a.t += N0(r[T.ix("Thuế GTGT (VNĐ)")]); a.gn += N0(r[T.ix("Giá trị NT Net trước thuế (VNĐ)")]); a.tn += N0(r[T.ix("Thuế GTGT Net (VNĐ)")]); });
+  const on = !!u && !!dot;
+  [["", a.g, a.t, g, t], ["N", a.gn, a.tn, gn, tn]].forEach((z) => { const s = z[0]; roS("xL1g" + s, on ? z[1] : ""); roS("xL1t" + s, on ? z[2] : ""); roS("xL1s" + s, on ? z[1] + z[2] : ""); roS("xL2g" + s, on ? z[1] + z[3] : ""); roS("xL2t" + s, on ? z[2] + z[4] : ""); roS("xL2s" + s, on ? z[1] + z[2] + z[3] + z[4] : ""); });
+  const V = XS.d.tbl_TVHienHanh, tv = xTVr(u), pv = tv ? N0(xg(V, tv, "Giá trị phần việc hiện hành (VNĐ)")) : 0, pvn = tv ? N0(xg(V, tv, "Giá trị Net hiện hành (VNĐ)")) : 0;
+  const tl = on && pv ? (a.g + a.t + g + t) / pv : "", tln = on && pvn ? (a.gn + a.tn + gn + tn) / pvn : "";
+  $("xTL").value = pTxt(tl); $("xTLN").value = pTxt(tln);
+  $("xTLH").textContent = on && pv ? "Giá trị phần việc hiện hành: " + fmt(pv) + " đ" : ""; $("xTLH").className = "hint" + (tl !== "" && tl > 1 ? " warn" : "");
+  const why = !$("xDA").value ? "Chọn Tên dự án, Số hợp đồng và Đợt để mở" : !$("xHD").value ? "Chọn Số hợp đồng và Đợt để mở" : !u ? "Chọn Thành viên liên danh để mở" : !dot ? (ed ? "Chọn Đợt cần sửa để mở" : "Nhập Đợt để mở") : "";
+  xLock(["xSo", "xND", "xNgay", "xG", "xVat", "xGN"], !!why); xLock(["xLoai"], ed && XS.ei == null); xLockMsg(["s2", "s3"], why); xLockMsg(["s1"], "");
+  const lo = $("xLoai").value, nm = $("xHD").value ? (xHDr() ? String(xg(XS.d.tbl_HopDong, xHDr(), "Số hợp đồng")) : "") : "";
+  xSum([["Mã nghiệm thu", XS.ma || (u && !ed ? xNextCode(T, $("xHD").value, "-KL") + " (dự kiến)" : "")], ["Số hợp đồng", nm], ["Đợt / Loại", dot ? "Đợt " + dot + (lo ? " · " + lo : "") : ""], ["NT sau thuế", g ? fmt(g + t) + " đ" : ""], ["Tỷ lệ HT lũy kế", pTxt(tl)]],
+    [!!(u && dot && lo && $("xSo").value), !!$("xNgay").value, !!g && $("xVat").value !== "" && (!net || $("xGN").value !== ""), on, !!String($("user").value || "").trim()],
+    (XS.ma ? XS.ma + " · " : "") + (nm || "Nghiệm thu mới"), (dot ? "Đợt " + dot : "Chưa chọn đợt") + (ed ? " · đang sửa" : " · thêm mới"));
+}
+async function saveNT() {
+  const user = xUser(); if (!user) return;
+  const T = XS.T, u = xUnit(), hd = $("xHD").value, ed = MODE === "edit", net = xNet();
+  if (ed && XS.ei == null) return msg("Chọn Số hợp đồng và Đợt cần sửa", true);
+  const need = [["xDA", "Tên dự án"], ["xHD", "Số hợp đồng"]].concat(XS.tvs ? [["xTV", "Thành viên liên danh"]] : [], [["xLoai", "Loại nghiệm thu"]], ed ? [] : [["xDot", "Đợt"]], [["xSo", "Số biên bản"], ["xNgay", "Ngày nghiệm thu"], ["xG", "Giá trị nghiệm thu trước thuế"], ["xVat", "Thuế VAT"]], net ? [["xGN", "Giá trị nghiệm thu trước thuế (thực)"]] : []);
+  if (!xNeed(need)) return;
+  const dot = ed ? N0(T.R[XS.ei][T.ix("Đợt")]) : N0($("xDot").value);
+  if (dot < 1) { $("xDot").classList.add("err"); return msg("Đợt phải là số từ 1", true); }
+  if (ntRows(u).some((x) => x[1] !== XS.ei && N0(x[0][T.ix("Đợt")]) === dot)) { $("xDot").classList.add("err"); return msg("Đợt " + dot + " đã có cho hợp đồng/thành viên này", true); }
+  const g = N0(mIn("xG")), gn = net ? N0(mIn("xGN")) : "";
+  if (net && gn > g) { $("xGN").classList.add("err"); return msg("Giá trị thực không được lớn hơn giá trị pháp lý", true); }
+  const key = ed ? XS.ma : xNextCode(T, hd, "-KL");
+  const vals = { "Mã nghiệm thu": key, "Mã hợp đồng": hd, "Mã thành viên": XS.tvs ? u : "", "Đợt": dot, "Loại nghiệm thu": $("xLoai").value, "Số biên bản": String($("xSo").value).trim(),
+    "Ngày nghiệm thu": toSerial($("xNgay").value), "Nội dung": String($("xND").value).trim(), "Giá trị NT trước thuế (VNĐ)": g, "Thuế suất VAT": Number($("xVat").value), "Giá trị NT Net trước thuế (VNĐ)": gn, "Ghi chú": String($("xGC").value).trim() };
+  await xWrite(NT_TN, key, vals, user, { sort: 1 });
+  const R = RET && RET.custom ? RET : null;
+  await buildNT();
+  if (R) { RET = R; return backRet(key); }
+  xMode("edit"); xGoKey(key);
+  const r = XS.T.R.find((x) => String(x[0]) === key), kt = r ? String(xg(XS.T, r, "Kiểm tra")) : "";
+  msg((ed ? "✅ Đã cập nhật " : "✅ Đã thêm ") + key + " – Kiểm tra: " + (kt || "OK"), kt.indexOf("⚠") >= 0);
+}
+function xGoKey(key) {
+  const T = XS.T, k = T.R.findIndex((r) => String(r[0]) === String(key)); if (k < 0) return;
+  const r = T.R[k], hd = String(xg(T, r, "Mã hợp đồng")), H = XS.d.tbl_HopDong, h = H.R.find((x) => String(x[0]) === hd);
+  $("xDA").value = h ? String(xg(H, h, "Mã dự án")) : ""; xHeadOpts(); $("xHD").value = hd; xHeadOpts(); $("xTV").value = String(xg(T, r, "Mã thành viên") || ""); xHeadOpts();
+  if (XS.k === "nt") { ntHead(); $("xDotE").value = String(k); ntLoad(k); } else { ttHead(); $("xRec").value = String(k); ttLoad(k); }
+}
+function xPre(p) {
+  $("xDA").value = p.da || ""; xHeadOpts(); $("xHD").value = p.hd || ""; xHeadOpts(); $("xTV").value = p.tv || ""; xHeadOpts();
+  if (p.loai) $("xLoai").value = p.loai; cbSyncAll(); xHead();
+}
+// ----- Thanh toán -----
+async function buildTT() {
+  const d = await xLoad(["tbl_DuAn", "tbl_HopDong", "tbl_HDHienHanh", "tbl_TVHienHanh", "tbl_TaiKhoanNT", NT_TN, TT_TN, HDN_TN]);
+  XS = { k: "tt", d: d, T: d[TT_TN], ma: "", ei: null, tvs: 0, bb: [], inv: [], bh: 0 };
+  META = { tn: TT_TN, ct: "tt", H: XS.T.H, fields: [], rows: XS.T.R, editIndex: null, secs: [
+    { id: "s1", ic: "📝", t: "Thông tin chung", c: "blue" }, { id: "s2", ic: "💰", t: "Đề nghị", c: "cyan" }, { id: "s3", ic: "🧾", t: "Hoá đơn", c: "orange" },
+    { id: "s4", ic: "✅", t: "Phê duyệt", c: "green" }, { id: "s5", ic: "🕒", t: "Ghi chú & lưu vết", c: "slate" }] };
+  navDraw(); renderTT(); xMode(MODE === "edit" ? "edit" : "new");
+  msg("Đã tải Thanh toán – " + XS.T.R.filter((x) => x[0] !== "").length + " dòng", false);
+}
+function renderTT() {
+  xShell("Hồ sơ Thanh toán", [
+    xF("xDA", "Tên dự án", xS("xDA"), "full", 1) + xF("xHD", "Số hợp đồng", xS("xHD", "Chọn Tên dự án trước"), "full", 1) + xF("xTV", "Thành viên liên danh", xS("xTV", "Chọn Số hợp đồng trước"), "full", 1)
+      + xF("xRec", "Hồ sơ thanh toán cần sửa", xS("xRec", "Chọn Số hợp đồng trước"), "full edonly", 1)
+      + xF("xLoai", "Loại thanh toán", xS("xLoai"), "", 1) + xF("xDot", "Đợt", '<input id="xDot" type="number" min="1" step="1" class="num">', "", 1)
+      + '<div id="w_xBB" class="full"><label>Số biên bản nghiệm thu <span class="req">*</span></label><div class="chkl" id="xBBL"></div><button type="button" class="addbtn" id="xBBAdd">＋ Thêm biên bản nghiệm thu mới</button><div class="hint" id="xBBH"></div></div>'
+      + xF("xCT", "Số chứng từ / đề nghị", '<input id="xCT" placeholder="VD: ĐNTT 01/…">', "", 0) + xF("xNgay", "Ngày thanh toán", '<input id="xNgay" type="date">', "", 1)
+      + xF("xTK", "TK thụ hưởng", xS("xTK", "Chọn Số hợp đồng trước"), "full", 1),
+    '<div class="subh" id="xPLh">Pháp lý (Hợp đồng)</div>' + xF("xNT", "Giá trị nghiệm thu sau thuế", xR("xNT"), "", 0, 1) + xF("xTL", "Tỷ lệ thanh toán", xP("xTL"), "", 0)
+      + xF("xDTT", "Giá trị được thanh toán", xR("xDTT"), "", 0, 1) + xF("xKTU", "Giá trị khấu trừ tạm ứng", xM("xKTU"), "", 0) + xF("xKTK", "Giá trị khấu trừ khác", xM("xKTK"), "", 0)
+      + xF("xCTT", "Giá trị cần thanh toán", xR("xCTT"), "", 0, 1)
+      + '<div class="subh net">Thực</div>' + xF("xNTn", "Giá trị nghiệm thu sau thuế (thực)", xR("xNTn"), "net", 0, 1) + xF("xTLn", "Tỷ lệ thanh toán (thực)", xP("xTLn"), "net", 0)
+      + xF("xDTTn", "Giá trị được thanh toán (thực)", xR("xDTTn"), "net", 0, 1) + xF("xKTUn", "Giá trị khấu trừ tạm ứng (thực)", xM("xKTUn"), "net", 0) + xF("xKTKn", "Giá trị khấu trừ khác (thực)", xM("xKTKn"), "net", 0)
+      + xF("xTLP", "Tỷ lệ phí", xR("xTLP", "Theo hợp đồng"), "net", 0, 1) + xF("xPhi", "Giá trị phí", xR("xPhi"), "net", 0, 1) + xF("xCTTn", "Giá trị cần thanh toán (thực)", xR("xCTTn"), "net", 0, 1)
+      + xF("xThu", "Giá trị thu về", xR("xThu"), "net", 0, 1),
+    xF("xHDG", "Giá trị hoá đơn", xR("xHDG"), "", 0, 1) + xF("xHDS", "Trạng thái hoá đơn", xS("xHDS"), "", 1) + '<div id="w_xInv" class="full"><div id="xInvW"></div></div>' + xF("xHDC", "Giá trị còn lại cần phát hành", xR("xHDC"), "", 0, 1),
+    xF("xPD", "Trạng thái phê duyệt", xS("xPD"), "", 1) + xF("xPDN", "Ngày phê duyệt", '<input id="xPDN" type="date">', "", 1) + xF("xPDT", "Tỷ lệ giải ngân", xP("xPDT"), "", 0) + xF("xPDG", "Giá trị giải ngân", xR("xPDG"), "", 0, 1),
+    ""]);
+  xHeadInit();
+  xOpts("xLoai", ["Tạm ứng", "Đợt", "Vật tư", "Quyết toán", "Bảo hành"].map((x) => [x, x]));
+  xOpts("xHDS", [["Chưa phát hành", "Chưa phát hành"], ["Đã phát hành", "Đã phát hành"]]);
+  xOpts("xPD", [["Đang trình", "Đang trình"], ["Đã phê duyệt", "Đã phê duyệt"]]);
+  $("xPDT").placeholder = "100";
+  $("xLoai").addEventListener("change", () => { XS.bb = []; ttHead(); });
+  $("xDot").addEventListener("input", () => { XS.dotUser = true; });
+  $("xRec").addEventListener("change", () => { const v = $("xRec").value; ttLoad(v === "" ? null : Number(v)); });
+  $("xHDS").addEventListener("change", () => { if ($("xHDS").value === "Đã phát hành" && !XS.inv.length) XS.inv.push({ so: "", gt: "", ng: "" }); ttInv(); });
+  $("xBBAdd").onclick = () => ttAddNT();
+}
+function ttReset() { XS.bb = []; XS.inv = []; XS.bh = 0; $("xHDS").value = "Chưa phát hành"; $("xPD").value = "Đang trình"; ttInv(); }
+function ttRows(u) { const T = XS.T, iU = T.ix("Mã đơn vị TC"); return u ? T.R.map((r, k) => [r, k]).filter((x) => x[0][0] !== "" && String(x[0][iU]) === u) : []; }
+function ttHead() {
+  const T = XS.T, u = xUnit(), ed = MODE === "edit", lo = $("xLoai").value, rows = ttRows(u);
+  if (ed) {
+    xOpts("xRec", rows.map((x) => { const r = x[0]; return [String(x[1]), [r[T.ix("Loại thanh toán")] || r[T.ix("Loại giao dịch")], r[T.ix("Đợt")] !== "" ? "Đợt " + r[T.ix("Đợt")] : "", r[T.ix("Số chứng từ")], r[0]].filter((s) => s !== "" && s != null).join(" · ")]; }), u ? "— Chọn hồ sơ cần sửa —" : "— Chọn —");
+    if (XS.ei != null && String($("xRec").value) !== String(XS.ei)) ttLoad(null);
+  } else if (lo !== "Quyết toán") {
+    const mx = rows.reduce((m, x) => Math.max(m, N0(x[0][T.ix("Đợt")])), 0);
+    if (u && !XS.dotUser) $("xDot").value = String(mx + 1); if (!u) $("xDot").value = "";
+    $("xDotH").textContent = u ? (mx ? "Đã có đến đợt " + mx + " – đề xuất đợt " + (mx + 1) : "Chưa có thanh toán – đề xuất đợt 1") : "";
+  }
+  const V = XS.d.tbl_TVHienHanh, tv = xTVr(u), nh = tv ? String(xg(V, tv, "Nhà thầu nhận tiền")) : "", K = XS.d.tbl_TaiKhoanNT;
+  const tks = nh ? K.R.filter((r) => r[0] !== "" && String(xg(K, r, "Mã nhà thầu")) === nh && xg(K, r, "Đang sử dụng") !== "Không") : [];
+  xOpts("xTK", tks.map((r) => [String(r[0]), String(xg(K, r, "Số tài khoản")) + " – " + String(xg(K, r, "Ngân hàng")) + (xg(K, r, "TK mặc định") === "Có" ? " (mặc định)" : "")]));
+  if (u && !$("xTK").value && !ed) { const df = String(xg(V, tv, "TK thụ hưởng") || ""), m = tks.find((r) => xg(K, r, "TK mặc định") === "Có"); $("xTK").value = tks.some((r) => String(r[0]) === df) ? df : m ? String(m[0]) : tks.length ? String(tks[0][0]) : ""; cbSync($("xTK")); }
+  ttBB(); xRefresh();
+}
+function ttUsed() {
+  const T = XS.T, used = Object.create(null);
+  T.R.forEach((r, k) => { if (k === XS.ei || r[0] === "") return; String(r[T.ix("Danh sách biên bản")] || "").split(";").concat([String(r[T.ix("Mã nghiệm thu")] || "")]).forEach((c) => { c = c.trim(); if (c) used[c] = 1; }); });
+  return used;
+}
+function ttBB() {
+  const N = XS.d[NT_TN], u = xUnit(), lo = $("xLoai").value, show = !!lo && lo !== "Tạm ứng"; shw("w_xBB", show);
+  if (!show) { XS.bb = []; return; }
+  const ln = TT2NT[lo], used = ttUsed();
+  const list = u ? N.R.filter((r) => r[0] !== "" && String(xg(N, r, "Mã đơn vị TC")) === u && String(xg(N, r, "Loại nghiệm thu") || "Giai đoạn") === ln && (!used[String(r[0])] || XS.bb.indexOf(String(r[0])) >= 0)) : [];
+  XS.bb = XS.bb.filter((c) => list.some((r) => String(r[0]) === c));
+  $("xBBL").innerHTML = !u ? '<div class="hint">Chọn Số hợp đồng' + (XS.tvs ? " và Thành viên" : "") + " trước</div>" : list.length
+    ? list.map((r) => { const c = String(r[0]); return '<label class="chk"><input type="checkbox" data-bb="' + esc(c) + '"' + (XS.bb.indexOf(c) >= 0 ? " checked" : "") + "><span><b>" + esc(xg(N, r, "Số biên bản")) + "</b> · Đợt " + esc(xg(N, r, "Đợt")) + " · " + esc(dmy(xg(N, r, "Ngày nghiệm thu"))) + "<i>" + (fmt(xg(N, r, "Giá trị NT sau thuế (VNĐ)")) || "0") + " đ</i></span></label>"; }).join("")
+    : '<div class="hint warn">Chưa có biên bản nghiệm thu loại "' + esc(ln) + '" chưa thanh toán – bấm ＋ để thêm mới</div>';
+  $("xBBL").querySelectorAll("input[data-bb]").forEach((e) => { const el = Object(e); el.onchange = () => { const c = el.dataset.bb; XS.bb = XS.bb.filter((x) => x !== c); if (el.checked) XS.bb.push(c); xRefresh(); }; });
+  $("xBBH").textContent = "Biên bản đã chọn cho hồ sơ thanh toán khác được ẩn. Có thể chọn nhiều biên bản.";
+}
+function ttInv() {
+  const w = $("xInvW"); if (!w.id) return; shw("w_xInv", $("xHDS").value === "Đã phát hành");
+  w.innerHTML = '<table class="inv"><thead><tr><th>Số hoá đơn *</th><th>Giá trị phát hành *</th><th>Ngày phát hành *</th><th></th></tr></thead><tbody>'
+    + XS.inv.map((x, i) => '<tr><td><input data-iv="' + i + '" data-k="so" value="' + esc(x.so) + '"></td><td><input class="num" inputmode="decimal" data-iv="' + i + '" data-k="gt" value="' + esc(fmt(x.gt)) + '"></td><td><input type="date" data-iv="' + i + '" data-k="ng" value="' + esc(x.ng) + '"></td><td><button type="button" class="del" data-ivd="' + i + '" title="Xoá hoá đơn">✕</button></td></tr>').join("")
+    + '</tbody></table><button type="button" class="addbtn" id="xInvAdd">＋ Thêm hoá đơn</button>';
+  w.querySelectorAll("input[data-iv]").forEach((e) => { const el = Object(e), x = XS.inv[+el.dataset.iv], k = el.dataset.k;
+    el.addEventListener("input", () => { x[k] = k === "gt" ? parseNum(el.value) : el.value; el.classList.remove("err"); });
+    if (k === "gt") el.addEventListener("blur", () => { el.value = x.gt === "" ? "" : fmt(x.gt); }); });
+  w.querySelectorAll("button[data-ivd]").forEach((e) => { Object(e).onclick = () => { XS.inv.splice(+Object(e).dataset.ivd, 1); ttInv(); xRefresh(); }; });
+  $("xInvAdd").onclick = () => { XS.inv.push({ so: "", gt: "", ng: "" }); ttInv(); };
+}
+function ttLoad(k) {
+  const T = XS.T, r = k == null ? null : T.R[k], g = (c) => xg(T, r, c), mv = (v) => (v === "" || v == null || !N0(v)) ? "" : fmt(v), pv = (v) => (v === "" || v == null) ? "" : String(+(N0(v) * 100).toFixed(4));
+  XS.ei = k; META.editIndex = k; XS.ma = r ? String(r[0]) : ""; XS.dotUser = !!r; XS.bh = r ? N0(g("Giữ lại bảo hành (VNĐ)")) : 0;
+  $("xLoai").value = r ? String(g("Loại thanh toán") || GD2TT[g("Loại giao dịch")] || "") : ""; $("xDot").value = r ? String(g("Đợt")) : "";
+  const ds = r ? String(g("Danh sách biên bản") || "") : ""; XS.bb = ds ? ds.split(";").map((s) => s.trim()).filter(Boolean) : (r && g("Mã nghiệm thu") ? [String(g("Mã nghiệm thu"))] : []);
+  $("xCT").value = r ? String(g("Số chứng từ")) : ""; $("xNgay").value = r && typeof g("Ngày thanh toán") === "number" ? fromSerial(g("Ngày thanh toán")) : "";
+  const nt = N0(g("Giá trị NT sau thuế (VNĐ)")), ntn = N0(g("Giá trị NT Net sau thuế (VNĐ)"));
+  $("xTL").value = !r ? "" : g("Tỷ lệ thanh toán") !== "" ? pv(g("Tỷ lệ thanh toán")) : nt ? String(+(N0(g("Giá trị thanh toán (VNĐ)")) / nt * 100).toFixed(4)) : "";
+  $("xTLn").value = !r ? "" : g("Tỷ lệ thanh toán Net") !== "" ? pv(g("Tỷ lệ thanh toán Net")) : ntn && N0(g("Giá trị thanh toán Net (VNĐ)")) ? String(+(N0(g("Giá trị thanh toán Net (VNĐ)")) / ntn * 100).toFixed(4)) : "";
+  $("xKTU").value = mv(g("Thu hồi tạm ứng (VNĐ)")); $("xKTK").value = mv(g("Khấu trừ khác (VNĐ)")); $("xKTUn").value = r && g("Thu hồi tạm ứng Net (VNĐ)") !== "" ? fmt(g("Thu hồi tạm ứng Net (VNĐ)")) : ""; $("xKTKn").value = r && g("Khấu trừ khác Net (VNĐ)") !== "" ? fmt(g("Khấu trừ khác Net (VNĐ)")) : "";
+  const I = XS.d[HDN_TN]; XS.inv = r ? I.R.filter((x) => x[0] !== "" && String(xg(I, x, "Mã giao dịch")) === XS.ma).map((x) => ({ so: String(xg(I, x, "Số hoá đơn")), gt: xg(I, x, "Giá trị phát hành (VNĐ)"), ng: typeof xg(I, x, "Ngày phát hành") === "number" ? fromSerial(xg(I, x, "Ngày phát hành")) : "" })) : [];
+  $("xHDS").value = r ? String(g("Trạng thái hoá đơn") || (XS.inv.length ? "Đã phát hành" : "Chưa phát hành")) : "Chưa phát hành";
+  $("xPD").value = r ? String(g("Trạng thái phê duyệt") || "") : "Đang trình"; $("xPDN").value = r && typeof g("Ngày phê duyệt") === "number" ? fromSerial(g("Ngày phê duyệt")) : ""; $("xPDT").value = r ? pv(g("Tỷ lệ giải ngân")) : "";
+  if (r) { const tk = String(g("TK thụ hưởng") || ""); if (tk && !Array.from($("xTK").options).some((o) => Object(o).value === tk)) $("xTK").insertAdjacentHTML("beforeend", '<option value="' + esc(tk) + '">' + esc(tk) + "</option>"); $("xTK").value = tk; } else $("xTK").value = "";
+  $("xGC").value = r ? String(g("Ghi chú")) : ""; $("xMa").value = XS.ma;
+  cbSyncAll(); ttBB(); ttInv(); xRefresh();
+}
+function ttCalc() {
+  const T = XS.T, N = XS.d[NT_TN], V = XS.d.tbl_TVHienHanh, HD = XS.d.tbl_HopDong, u = xUnit(), lo = $("xLoai").value, net = xNet(), tv = xTVr(u), ed = MODE === "edit";
+  const tu = lo === "Tạm ứng", bh = lo === "Bảo hành", qt = lo === "Quyết toán";
+  document.querySelectorAll("#frm .net").forEach((e) => { Object(e).style.display = net ? "" : "none"; });
+  $("xPLh").textContent = net ? "⚖️ Pháp lý (Hợp đồng)" : "📄 Hợp đồng";
+  shw("w_xDot", !qt); shw("w_xKTK", !tu && !bh); shw("w_xKTKn", net && !tu && !bh);
+  Object($("w_xNT").querySelector("label")).textContent = tu ? "Giá trị hợp đồng (căn cứ tạm ứng)" : "Giá trị nghiệm thu sau thuế";
+  let b = 0, bn = 0, fee = 0; const hr = xHDr(), tlp = hr ? N0(xg(HD, hr, "Tỷ lệ phí")) : 0;
+  if (tu) { b = tv ? N0(xg(V, tv, "Giá trị phần việc hiện hành (VNĐ)")) : 0; bn = tv ? N0(xg(V, tv, "Giá trị Net hiện hành (VNĐ)")) : 0; }
+  else XS.bb.forEach((c) => { const r = N.R.find((x) => String(x[0]) === c); if (!r) return; b += N0(xg(N, r, "Giá trị NT sau thuế (VNĐ)")); bn += N0(xg(N, r, "Giá trị NT Net sau thuế (VNĐ)")); fee += (tlp + N0(xg(N, r, "Thuế suất VAT"))) * (N0(xg(N, r, "Giá trị NT trước thuế (VNĐ)")) - N0(xg(N, r, "Giá trị NT Net trước thuế (VNĐ)"))); });
+  const sug = !tv || !lo ? "" : tu ? N0(xg(V, tv, "Tỷ lệ tạm ứng")) : (bh || qt) ? 1 : N0(xg(V, tv, "Tỷ lệ thanh toán tối đa mỗi đợt"));
+  const ph = sug === "" ? "" : String(+(sug * 100).toFixed(2)); $("xTL").placeholder = ph; $("xTLn").placeholder = ph;
+  $("xTLH").textContent = sug === "" ? "" : "Để trống = " + ph + "% theo " + (tu ? "tỷ lệ tạm ứng" : (bh || qt) ? "toàn bộ giá trị" : "tỷ lệ thanh toán") + " của HĐ/phụ lục";
+  const rate = pIn("xTL") === "" ? N0(sug) : pIn("xTL"), rateN = pIn("xTLn") === "" ? N0(sug) : pIn("xTLn");
+  const dtt = Math.round(rate * b), dttn = net ? Math.round(rateN * bn) : 0;
+  let tuv = 0, th = 0; ttRows(u).forEach((x) => { if (x[1] === XS.ei) return; const r = x[0]; if (String(r[T.ix("Loại giao dịch")]) === "Tạm ứng") tuv += N0(r[T.ix("Giá trị thanh toán (VNĐ)")]); th += N0(r[T.ix("Thu hồi tạm ứng (VNĐ)")]); });
+  const rem = tuv - th, sk = !tu && !bh && !!lo && (rem > 0 || N0(mIn("xKTU")) > 0);
+  shw("w_xKTU", sk); shw("w_xKTUn", net && sk);
+  const ktu = sk ? N0(mIn("xKTU")) : 0, ktk = tu || bh ? 0 : N0(mIn("xKTK"));
+  $("xKTUH").textContent = sk ? "Tạm ứng còn phải thu hồi: " + (fmt(rem) || "0") + " đ" : ""; $("xKTUH").className = "hint" + (sk && ktu > rem ? " warn" : "");
+  $("xKTUn").placeholder = fmt(ktu) || "0"; $("xKTKn").placeholder = fmt(ktk) || "0";
+  const ktun = sk ? (mIn("xKTUn") === "" ? ktu : N0(mIn("xKTUn"))) : 0, ktkn = tu || bh ? 0 : (mIn("xKTKn") === "" ? ktk : N0(mIn("xKTKn")));
+  const ctt = dtt - ktu - XS.bh - ktk, phi = net && !tu && XS.bb.length ? Math.round(fee) : 0, cttn = net ? dttn + phi - ktun - XS.bh - ktkn : 0, thu = net ? ctt - cttn : 0;
+  roS("xNT", lo ? b : ""); roS("xDTT", lo ? dtt : ""); roS("xCTT", lo ? ctt : ""); roS("xNTn", lo ? bn : ""); roS("xDTTn", lo ? dttn : ""); $("xTLP").value = pTxt(tlp); roS("xPhi", lo ? phi : ""); roS("xCTTn", lo ? cttn : ""); roS("xThu", lo ? thu : "");
+  $("xCTTH").textContent = XS.bh ? "Đã trừ giữ lại bảo hành " + fmt(XS.bh) + " đ (dữ liệu cũ)" : "";
+  roS("xHDG", lo ? b : ""); const iss = $("xHDS").value === "Đã phát hành", si = iss ? XS.inv.reduce((s, x) => s + N0(x.gt), 0) : 0; roS("xHDC", lo ? b - si : "");
+  $("xHDCH").textContent = si > b ? "⚠ Tổng giá trị phát hành vượt giá trị hoá đơn" : ""; $("xHDCH").className = "hint warn";
+  const ok = $("xPD").value === "Đã phê duyệt"; shw("w_xPDN", ok); shw("w_xPDT", ok);
+  const rgn = pIn("xPDT") === "" ? 1 : pIn("xPDT"), gn = ok ? Math.round(rgn * ctt) : 0; shw("w_xPDG", ok); roS("xPDG", ok ? gn : "");
+  XS.c = { b: b, bn: bn, rate: rate, rateN: rateN, dtt: dtt, dttn: dttn, ktu: ktu, ktk: ktk, ktun: ktun, ktkn: ktkn, ctt: ctt, cttn: cttn, phi: phi, thu: thu, rgn: rgn, gn: gn, net: net, sk: sk };
+  const why = !$("xDA").value ? "Chọn Tên dự án, Số hợp đồng và Loại thanh toán để mở" : !$("xHD").value ? "Chọn Số hợp đồng và Loại thanh toán để mở" : !u ? "Chọn Thành viên liên danh để mở" : ed && XS.ei == null ? "Chọn hồ sơ thanh toán cần sửa để mở" : !lo ? "Chọn Loại thanh toán để mở" : "";
+  xLock(["xDot", "xCT", "xNgay", "xTK", "xTL", "xKTU", "xKTK", "xTLn", "xKTUn", "xKTKn", "xHDS", "xPD", "xPDN", "xPDT"], !!why); xLock(["xLoai"], ed && XS.ei == null);
+  const bbB = $("xBBAdd"); if (bbB.style) bbB.disabled = !!why; xLockMsg(["s2", "s3", "s4"], why);
+  const nm = hr ? String(xg(HD, hr, "Số hợp đồng")) : "", dot = qt ? "" : $("xDot").value;
+  xSum([["Mã giao dịch", XS.ma || (u && !ed ? xNextCode(T, $("xHD").value, "-TT") + " (dự kiến)" : "")], ["Số hợp đồng", nm], ["Loại / Đợt", lo ? lo + (dot ? " · Đợt " + dot : "") : ""], ["Cần thanh toán", lo ? (fmt(ctt) || "0") + " đ" : ""], ["Giải ngân", ok ? (fmt(gn) || "0") + " đ" : $("xPD").value]],
+    [!!(u && lo && (qt || dot) && $("xNgay").value && $("xTK").value && (tu || XS.bb.length)), !!lo, !!$("xHDS").value && (!iss || XS.inv.length > 0), !!$("xPD").value && (!ok || !!$("xPDN").value), !!String($("user").value || "").trim()],
+    (XS.ma ? XS.ma + " · " : "") + (nm || "Thanh toán mới"), (lo || "Chưa chọn loại") + (ed ? " · đang sửa" : " · thêm mới"));
+}
+async function saveTT() {
+  const user = xUser(); if (!user) return;
+  const T = XS.T, u = xUnit(), hd = $("xHD").value, ed = MODE === "edit", lo = $("xLoai").value, qt = lo === "Quyết toán", tu = lo === "Tạm ứng";
+  if (ed && XS.ei == null) return msg("Chọn hồ sơ thanh toán cần sửa", true);
+  const need = [["xDA", "Tên dự án"], ["xHD", "Số hợp đồng"]].concat(XS.tvs ? [["xTV", "Thành viên liên danh"]] : [], [["xLoai", "Loại thanh toán"]], qt ? [] : [["xDot", "Đợt"]], [["xNgay", "Ngày thanh toán"], ["xTK", "TK thụ hưởng"], ["xHDS", "Trạng thái hoá đơn"], ["xPD", "Trạng thái phê duyệt"]]);
+  if (!xNeed(need)) return;
+  if (!tu && !XS.bb.length) { fx($("xBBAdd")); return msg("Chọn ít nhất 1 biên bản nghiệm thu", true); }
+  const dot = qt ? "" : N0($("xDot").value);
+  if (!qt && ttRows(u).some((x) => x[1] !== XS.ei && N0(x[0][T.ix("Đợt")]) === dot && x[0][T.ix("Loại thanh toán")] !== "Quyết toán")) { $("xDot").classList.add("err"); return msg("Đợt " + dot + " đã có cho hợp đồng/thành viên này", true); }
+  const iss = $("xHDS").value === "Đã phát hành", inv = iss ? XS.inv : [];
+  if (iss) {
+    if (!inv.length) return msg("Thêm ít nhất 1 hoá đơn đã phát hành", true);
+    const bad = inv.findIndex((x) => !String(x.so).trim() || !N0(x.gt) || !x.ng);
+    if (bad >= 0) { const e = Object(document.querySelector('#xInvW input[data-iv="' + bad + '"]')); if (e.classList) { e.classList.add("err"); e.focus(); } return msg("Hoá đơn dòng " + (bad + 1) + ": nhập đủ Số, Giá trị, Ngày phát hành", true); }
+  }
+  const ok = $("xPD").value === "Đã phê duyệt";
+  if (ok && !$("xPDN").value) { $("xPDN").classList.add("err"); return msg("Nhập Ngày phê duyệt", true); }
+  ttCalc(); const c = XS.c;
+  const key = ed ? XS.ma : xNextCode(T, hd, "-TT");
+  const vals = { "Mã giao dịch": key, "Mã hợp đồng": hd, "Mã thành viên": XS.tvs ? u : "", "Loại thanh toán": lo, "Đợt": dot, "Danh sách biên bản": tu ? "" : XS.bb.join("; "), "Mã nghiệm thu": tu ? "" : XS.bb[0],
+    "Số chứng từ": String($("xCT").value).trim(), "Ngày thanh toán": toSerial($("xNgay").value), "Giá trị thanh toán (VNĐ)": c.dtt, "Giá trị thanh toán Net (VNĐ)": c.net ? c.dttn : "",
+    "Thu hồi tạm ứng (VNĐ)": c.ktu, "Giữ lại bảo hành (VNĐ)": XS.bh, "Khấu trừ khác (VNĐ)": c.ktk, "Tỷ lệ thanh toán": c.rate, "Tỷ lệ thanh toán Net": c.net ? c.rateN : "",
+    "Thu hồi tạm ứng Net (VNĐ)": c.net && c.sk ? c.ktun : "", "Khấu trừ khác Net (VNĐ)": c.net ? c.ktkn : "", "Trạng thái hoá đơn": $("xHDS").value, "Trạng thái phê duyệt": $("xPD").value,
+    "Ngày phê duyệt": ok ? toSerial($("xPDN").value) : "", "Tỷ lệ giải ngân": ok ? c.rgn : "", "TK thụ hưởng": $("xTK").value, "Ghi chú": String($("xGC").value).trim() };
+  await xWrite(TT_TN, key, vals, user, { inv: inv.map((x) => ({ so: String(x.so).trim(), gt: N0(x.gt), ng: x.ng })) });
+  await buildTT(); xMode("edit"); xGoKey(key);
+  const r = XS.T.R.find((x) => String(x[0]) === key), kt = r ? String(xg(XS.T, r, "Kiểm tra")) : "";
+  msg((ed ? "✅ Đã cập nhật " : "✅ Đã thêm ") + key + " – Kiểm tra: " + (kt || "OK"), kt.indexOf("⚠") >= 0);
+}
+function ttState() {
+  const v = Object.create(null); document.querySelectorAll("#frm input[id], #frm select[id], #frm textarea[id]").forEach((e) => { const el = Object(e); if (el.id !== "user") v[el.id] = el.value; });
+  return { mode: MODE, key: XS.ma, v: v, bb: XS.bb.slice(), inv: XS.inv.map((x) => Object.assign({}, x)), dotUser: XS.dotUser };
+}
+function ttAddNT() {
+  if (!xUnit() || !$("xLoai").value) return msg("Chọn Số hợp đồng và Loại thanh toán trước", true);
+  const pre = { da: $("xDA").value, hd: $("xHD").value, tv: $("xTV").value, loai: TT2NT[$("xLoai").value] || "" };
+  RET = { tn: TT_TN, custom: 1, st: ttState(), label: TABLES[TT_TN] };
+  MODE = "new"; CUR = NT_TN; navDraw(); run(async () => { await buildNT(); xPre(pre); msg("Nhập biên bản nghiệm thu mới – Lưu xong tự quay lại Thanh toán", false); });
+}
+async function ttRestore(R, nk) {
+  MODE = R.st.mode; CUR = TT_TN; navDraw(); await buildTT();
+  const s = R.st, V = s.v;
+  xPre({ da: V.xDA, hd: V.xHD, tv: V.xTV, loai: V.xLoai });
+  if (MODE === "edit" && s.key) { const k = XS.T.R.findIndex((r) => String(r[0]) === s.key); if (k >= 0) { $("xRec").value = String(k); ttLoad(k); } }
+  Object.keys(V).forEach((id) => { if (["xDA", "xHD", "xTV", "xRec", "xMa"].indexOf(id) < 0 && $(id).id) $(id).value = V[id]; });
+  XS.bb = s.bb.slice(); if (nk && XS.bb.indexOf(nk) < 0) XS.bb.push(nk); XS.inv = s.inv; XS.dotUser = s.dotUser;
+  cbSyncAll(); ttBB(); ttInv(); xRefresh();
+  msg(nk ? "✅ Đã thêm biên bản " + nk + " và chọn vào hồ sơ thanh toán" : "↩ Đã quay lại Thanh toán", false);
 }
 </script>
 </body>
