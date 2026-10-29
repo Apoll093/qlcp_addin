@@ -98,10 +98,10 @@ const TABLES = {tbl_DuAn:"🏢 Dự án", tbl_HopDong:"📑 Hợp đồng", tbl_
 const QUICK = ["tbl_DuAn", "tbl_HopDong", "tbl_NghiemThu", "tbl_ThanhToan"];
 const SORT_AFTER = ["tbl_HDThanhVien", "tbl_NghiemThu", "tbl_TaiKhoanNT"];
 const AUDIT = ["Ngày tạo", "Người tạo", "Ngày sửa", "Người sửa"];
-const C = { blue: ["#2563EB", "#EFF6FF"], green: ["#059669", "#ECFDF5"], violet: ["#7C3AED", "#F5F3FF"], orange: ["#EA580C", "#FFF7ED"], cyan: ["#0891B2", "#ECFEFF"], slate: ["#475569", "#F1F5F9"] };
+const C = { blue: ["#2563EB", "#EFF6FF"], green: ["#059669", "#ECFDF5"], violet: ["#7C3AED", "#F5F3FF"], orange: ["#EA580C", "#FFF7ED"], cyan: ["#0891B2", "#ECFEFF"], slate: ["#475569", "#F1F5F9"] }; const LOOKUP = { "Mã CĐT": { tbl: "tbl_CongTy", key: "Mã công ty", show: "Tên công ty", status: "Trạng thái", label: "Chủ đầu tư", hide: ["Tên chủ đầu tư"] } };
 const LAYOUT = {
   tbl_DuAn: [
-    { ic: "🏢", t: "Thông tin chung", c: "blue", f: ["Mã dự án", "Tên dự án", "Mã CĐT", "Tên chủ đầu tư", "Loại hình dự án", "Nhóm dự án", "Cấp công trình"] },
+    { ic: "🏢", t: "Thông tin chung", c: "blue", f: ["Mã dự án", "Tên dự án", "Mã CĐT", "Loại hình dự án", "Nhóm dự án", "Cấp công trình"] },
     { ic: "📍", t: "Địa điểm & quy mô", c: "green", f: ["Địa điểm (xã/phường)", "Tỉnh/Thành", "Diện tích đất (m²)", "Tổng DT sàn XD (m²)", "Quy mô / Công suất"] },
     { ic: "📜", t: "Pháp lý – chủ trương", c: "violet", f: ["Số QĐ chấp thuận chủ trương", "Ngày QĐ chủ trương"] },
     { ic: "📅", t: "Tiến độ & trạng thái", c: "orange", f: ["Ngày khởi công (KH)", "Ngày hoàn thành (KH)", "Thời gian thực hiện (tháng)", "Giai đoạn", "Trạng thái"] },
@@ -109,13 +109,13 @@ const LAYOUT = {
   ]
 };
 const SUMMARY = {
-  tbl_DuAn: ["Mã dự án", "Tên chủ đầu tư", "Trạng thái", "TMĐT hiện hành (VNĐ)", "Thời gian thực hiện (tháng)"],
+  tbl_DuAn: ["Mã dự án", "Mã CĐT", "Trạng thái", "TMĐT hiện hành (VNĐ)", "Thời gian thực hiện (tháng)"],
   tbl_HopDong: ["Mã hợp đồng", "Tên nhà thầu", "Trạng thái HĐ", "Giá trị pháp lý sau thuế (VNĐ)"],
   tbl_ThanhToan: ["Mã giao dịch", "Mã hợp đồng", "Loại giao dịch", "Số tiền thực chi (VNĐ)"],
   tbl_NghiemThu: ["Mã nghiệm thu", "Mã hợp đồng", "Đợt", "Giá trị NT sau thuế (VNĐ)"]
 };
 const OPT = {
-  "Tên dự án": { req: 1, full: 1, ph: "VD: Khu đô thị ABC Riverside" }, "Tên chủ đầu tư": { full: 1 },
+  "Tên dự án": { req: 1, full: 1, ph: "VD: Khu đô thị ABC Riverside" }, "Mã CĐT": { full: 1 },
   "Quy mô / Công suất": { full: 1, ph: "VD: 35 tầng nổi + 4 tầng hầm" }, "Số QĐ chấp thuận chủ trương": { ph: "VD: 123/QĐ-UBND" },
   "Diện tích đất (m²)": { unit: "m²" }, "Tổng DT sàn XD (m²)": { unit: "m²" }, "Thời gian thực hiện (tháng)": { unit: "tháng" },
   "Ghi chú": { full: 1, area: 1 }, "Nội dung": { full: 1 }, "Diễn giải": { full: 1 }, "Kiểm tra": { full: 1 }
@@ -135,7 +135,7 @@ const E = (fd) => fd ? $("f" + fd.i) : Object(null);
 const isRO = (fd) => !!fd.formula || AUDIT.indexOf(fd.name) >= 0;
 const val = (fd) => String(E(fd).value == null ? "" : E(fd).value).trim();
 const msg = (t, bad) => { const e = $("msg"); if (!t) { e.style.display = "none"; return; } e.textContent = t; e.className = bad ? "bad" : "ok"; e.style.display = "block"; clearTimeout(msg.h); msg.h = setTimeout(() => { e.style.display = "none"; }, bad ? 7000 : 4000); };
-const run = async (fn) => { try { await fn(); } catch (e) { msg("Lỗi: " + e.message, true); } };
+const run = async (fn) => { try { await fn(); } catch (e) { msg("Lỗi: " + e.message, true); } }; const lkHint = (fd) => { if (!fd || !fd.lk) return; const v = val(fd); $("lkh" + fd.i).textContent = v ? "Mã lưu vào sheet: " + v : ""; };
 
 Office.onReady(() => {
   $("nav").innerHTML = QUICK.map((k) => '<a data-t="' + k + '">' + TABLES[k] + "</a>").join("") + '<select id="tbl">' + Object.keys(TABLES).map((k) => '<option value="' + k + '">' + TABLES[k] + "</option>").join("") + "</select>";
@@ -148,7 +148,7 @@ Office.onReady(() => {
   $("save").onclick = () => run(save);
   $("goto").onclick = () => run(gotoRow);
   window.addEventListener("scroll", spy);
-  run(() => build($("tbl").value));
+  try { Office.context.document.settings.set("Office.AutoShowTaskpaneWithDocument", true); Office.context.document.settings.saveAsync(); } catch (e) { } run(() => build($("tbl").value));
 });
 
 function avatar() { const u = String($("user").value || "").trim().split(/\s+/); $("avatar").textContent = u[0] ? (u.length > 1 ? u[0][0] + u[u.length - 1][0] : u[0].slice(0, 2)).toUpperCase() : "NL"; }
@@ -195,8 +195,8 @@ async function build(tn) {
       }
       fields.push(fd);
     }
+    for (const fd of fields) { const L = LOOKUP[fd.name]; if (!L || fd.formula) continue; try { const lt = ctx.workbook.tables.getItem(L.tbl), lh = lt.getHeaderRowRange(), lb = lt.getDataBodyRange(); lh.load("values"); lb.load("values"); await ctx.sync(); const LH = lh.values[0], k = LH.indexOf(L.key), sh = LH.indexOf(L.show), st = L.status ? LH.indexOf(L.status) : -1; fd.lk = lb.values.filter((x) => x[k] !== "").map((x) => ({ v: String(x[k]), t: String(x[sh]), off: st >= 0 && x[st] !== "" && x[st] !== "Hoạt động" })); fd.opts = fd.lk.map((x) => x.v); fd.label = L.label; (L.hide || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.hidden = true; }); } catch (e) { } }
     let ct = null;
-    if (H.indexOf("Mã CĐT") >= 0) { try { const c = ctx.workbook.tables.getItem("tbl_CongTy").getDataBodyRange(); c.load("values"); await ctx.sync(); ct = c.values; } catch (e) { } }
     return { tn: tn, H: H, fields: fields, rows: body.values, editIndex: null, ct: ct };
   });
   document.querySelectorAll(".nav a").forEach((a) => Object(a).classList.toggle("on", Object(a).dataset.t === tn));
@@ -207,7 +207,7 @@ async function build(tn) {
 
 function sections() {
   const used = Object.create(null), out = [];
-  const add = (s) => { const f = s.f.filter((n) => META.H.indexOf(n) >= 0 && !used[n]); f.forEach((n) => { used[n] = 1; }); if (f.length) out.push(Object.assign({}, s, { f: f })); };
+  const add = (s) => { const f = s.f.filter((n) => META.H.indexOf(n) >= 0 && !used[n] && !(F(n) && F(n).hidden)); f.forEach((n) => { used[n] = 1; }); if (f.length) out.push(Object.assign({}, s, { f: f })); };
   if (LAYOUT[META.tn]) LAYOUT[META.tn].forEach(add);
   else {
     const fs = META.fields.filter((fd) => AUDIT.indexOf(fd.name) < 0 && fd.name !== "Ghi chú");
@@ -239,7 +239,7 @@ function ctl(fd) {
   else if (fd.type === "money") x = '<input id="' + id + '" class="num" inputmode="decimal" placeholder="0">';
   else x = '<input id="' + id + '" placeholder="' + esc(o.ph || "") + '">';
   if (o.unit) x = '<div class="unit">' + x + "<span>" + o.unit + "</span></div>";
-  return '<div class="' + (o.full || o.area ? "full" : "") + '"><label for="' + id + '">' + esc(fd.name) + (fd.req && !ro ? ' <span class="req">*</span>' : "") + (fd.formula ? ' <span class="fx">ƒx</span>' : "") + "</label>" + x + "</div>";
+  return '<div class="' + (o.full || o.area ? "full" : "") + '"><label for="' + id + '">' + esc(fd.label || fd.name) + (fd.req && !ro ? ' <span class="req">*</span>' : "") + (fd.formula ? ' <span class="fx">ƒx</span>' : "") + "</label>" + x + (fd.lk ? '<div class="hint" id="lkh' + fd.i + '"></div>' : "") + "</div>";
 }
 
 function render() {
@@ -274,9 +274,9 @@ function fillOpts(fd) {
     if (dv) o = fd.depMode === "eq" ? fd.opts.filter((v, k) => String(fd.depList[k]) === dv) : fd.opts.filter((v) => String(v).indexOf(dv + fd.sep) === 0);
     else if (!(d && d.formula)) o = [];
   }
-  const lab = (v) => { if (fd.type === "pct" && typeof v === "number") return +(v * 100).toFixed(2) + "%"; if (fd.name === "Mã CĐT" && META.ct) { const c = META.ct.find((x) => x[0] === v); if (c) return v + " – " + (c[2] || c[1]); } return v; };
+  const lab = (v) => { if (fd.type === "pct" && typeof v === "number") return +(v * 100).toFixed(2) + "%"; if (fd.lk) { const c = fd.lk.find((x) => x.v === String(v)); if (c) return c.t + (c.off ? " (ngừng hoạt động)" : ""); } return v; };
   el.innerHTML = '<option value="">— Chọn —</option>' + o.map((v) => '<option value="' + esc(v) + '">' + esc(lab(v)) + "</option>").join("");
-  if (o.map(String).indexOf(cur) >= 0) el.value = cur;
+  if (o.map(String).indexOf(cur) >= 0) el.value = cur; lkHint(fd);
 }
 
 function months(a, b) {
@@ -288,7 +288,7 @@ function months(a, b) {
 
 function onChange(fd) {
   E(fd).classList.remove("err");
-  if (fd.name === "Mã CĐT" && META.ct && F("Tên chủ đầu tư")) { const v = val(fd), c = META.ct.find((x) => x[0] === v); E(F("Tên chủ đầu tư")).value = v ? (c ? c[1] : "⚠ Mã CĐT không tồn tại") : ""; }
+  lkHint(fd);
   if (/^Ngày (khởi công|hoàn thành) \(KH\)$/.test(fd.name) && F("Thời gian thực hiện (tháng)")) E(F("Thời gian thực hiện (tháng)")).value = months(val(F("Ngày khởi công (KH)")), val(F("Ngày hoàn thành (KH)")));
   refresh();
 }
@@ -310,9 +310,9 @@ function refresh() {
   const names = (SUMMARY[META.tn] || [META.H[0], META.H[1]]).filter((n) => F(n)).slice(0, 5);
   if (F("Kiểm tra") && names.indexOf("Kiểm tra") < 0) names.push("Kiểm tra");
   $("sum").innerHTML = names.map((n) => {
-    const fd = F(n), v = val(fd);
+    const fd = F(n), v0 = val(fd), lc = fd.lk ? fd.lk.find((x) => x.v === v0) : null, v = lc ? lc.t : v0;
     const show = !v || v === "0" ? "—" : (/Trạng thái|Tình trạng|Kiểm tra|Hiệu lực/.test(n) ? '<span class="st ' + stCls(v) + '">' + esc(v) + "</span>" : esc(v) + (fd.type === "money" && /VNĐ/.test(n) ? " đ" : (OPT[n] && OPT[n].unit ? " " + OPT[n].unit : "")));
-    return '<div><div class="k">' + esc(n.replace(/ \(VNĐ\)/, "")) + '</div><div class="v" title="' + esc(v) + '">' + show + "</div></div>";
+    return '<div><div class="k">' + esc((fd.label || n).replace(/ \(VNĐ\)/, "")) + '</div><div class="v" title="' + esc(v) + '">' + show + "</div></div>";
   }).join("") + '<div><div class="k">Mức độ hoàn thiện</div><div class="v">' + done + "/" + tot + ' trường</div><div class="prog"><i style="width:' + (tot ? Math.round(done / tot * 100) : 0) + '%"></i></div></div>';
   const key = val(META.fields[0]), nm = val(META.fields[1]);
   $("crumb").innerHTML = esc(TABLES[META.tn].replace(/^\S+\s/, "")) + " / <b>" + esc(key || "Thêm mới") + "</b>";
@@ -437,7 +437,7 @@ async function save() {
     let old = META.H.map(() => "");
     if (!isNew) { const r0 = t.getDataBodyRange().getRow(META.editIndex); r0.load("values"); await ctx.sync(); old = r0.values[0]; }
     const out = META.fields.map((fd) => {
-      if (fd.formula) return fd.formula;
+      if (fd.formula) return fd.formula; if (fd.hidden) return old[fd.i];
       if (fd.name === "Ngày tạo") return isNew ? today() : old[fd.i];
       if (fd.name === "Người tạo") return isNew ? user : old[fd.i];
       if (fd.name === "Ngày sửa") return isNew ? "" : today();
