@@ -74,7 +74,7 @@ input:disabled,textarea:disabled{background:#F1F5F9;color:#94A3B8;cursor:not-all
 .foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 -2px 10px rgba(15,42,68,.08);z-index:20}
 .foot .info{flex:1;min-width:0}.foot .info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.foot .info small{color:var(--mut)}
 .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:12.5px;white-space:nowrap}
-.btn.pri{background:var(--pri);color:#fff}.btn.pri:hover{background:#1D4ED8}.btn.gh{background:#E2E8F0;color:var(--txt)}
+.btn.dl{background:#FEE2E2;color:#B91C1C}.btn.dl.arm{background:#DC2626;color:#fff}.btn.pri{background:var(--pri);color:#fff}.btn.pri:hover{background:#1D4ED8}.btn.gh{background:#E2E8F0;color:var(--txt)}
 #msg{position:fixed;left:10px;right:10px;bottom:66px;padding:9px 12px;border-radius:8px;display:none;font-weight:600;z-index:30;box-shadow:0 4px 12px rgba(0,0,0,.12)}
 .ok{background:#DCFCE7;color:#166534}.bad{background:#FEE2E2;color:#991B1B}
 .nav2{display:flex;gap:4px;overflow-x:auto;margin-top:5px;scrollbar-width:none}
@@ -125,7 +125,7 @@ table.inv{width:100%;border-collapse:collapse;font-size:12px}table.inv th{text-a
 <div id="msg"></div>
 <div class="foot">
   <div class="info"><b id="fTitle"></b><small id="fSub"></small></div>
-  <button class="btn gh" id="clear" type="button">↺ Làm mới</button>
+  <button class="btn gh" id="clear" type="button">↺ Làm mới</button><button class="btn dl" id="delB" type="button" hidden>🗑 Xoá</button>
   <button class="btn pri" id="save" type="button">💾 Lưu</button>
 </div>
 <script>
@@ -228,7 +228,7 @@ Office.onReady(() => {
   $("pick").onchange = () => run(() => $("pick").value ? loadRow($("pick").value) : clearForm());
   $("clear").onclick = () => META && META.ct === 1 ? ctReset() : X() ? xMode(MODE) : setMode(MODE);
   $("save").onclick = () => run(() => META && META.ct === 1 ? saveCT() : X() ? (XS.k === "nt" ? saveNT() : saveTT()) : save());
-  $("goto").onclick = () => run(gotoRow);
+  $("goto").onclick = () => run(gotoRow); $("delB").onclick = () => run(delClick); setInterval(delVis, 400);
   window.addEventListener("scroll", spy);
   try { Office.context.document.settings.set("Office.AutoShowTaskpaneWithDocument", true); Office.context.document.settings.saveAsync(); } catch (e) { } run(() => build(CUR));
 });
@@ -794,16 +794,16 @@ const ctLine = (c) => CT.lines.find((x) => x.code === c) || {};
 function ctTree() {
   const set = Object.create(null), sum = Object.create(null);
   CT.lines.forEach((l) => { let c = l.code; while (c) { set[c] = 1; c = parentOf(c); } });
-  CT.lines.forEach((l) => { if (l.hdr) return; const g = Number(l.gv) || 0, t = Math.round(g * (Number(l.vat) || 0)); let c = l.code; while (c) { const s = sum[c] || (sum[c] = { g: 0, t: 0 }); s.g += g; s.t += t; c = parentOf(c); } });
+  CT.lines.forEach((l) => { if (ctKids(l.code)) return; const g = Number(l.gv) || 0, t = Math.round(g * (Number(l.vat) || 0)); let c = l.code; while (c) { const s = sum[c] || (sum[c] = { g: 0, t: 0 }); s.g += g; s.t += t; c = parentOf(c); } });
   const codes = Object.keys(set).sort(), cnt = [];
   return codes.map((c) => {
     const d = c.split(".").length, l = CT.lines.find((x) => x.code === c);
     cnt.length = d; for (let i = 0; i < d - 1; i++) if (!cnt[i]) cnt[i] = 1; cnt[d - 1] = (cnt[d - 1] || 0) + 1;
-    const p = !l || l.hdr || codes.some((x) => x.indexOf(c + ".") === 0);
+    const p = !l || codes.some((x) => x.indexOf(c + ".") === 0);
     return { c: c, d: d, tt: cnt.join("."), p: p, l: l, s: sum[c] || { g: 0, t: 0 } };
   });
 }
-function ctTot() { let g = 0, t = 0; CT.lines.forEach((l) => { if (l.hdr) return; const a = Number(l.gv) || 0; g += a; t += Math.round(a * (Number(l.vat) || 0)); }); return { g: g, t: t }; }
+function ctTot() { let g = 0, t = 0; CT.lines.forEach((l) => { if (ctKids(l.code)) return; const a = Number(l.gv) || 0; g += a; t += Math.round(a * (Number(l.vat) || 0)); }); return { g: g, t: t }; }
 function ctVat(c) { const H = CT.ct.H, iC = H.indexOf("Mã chi phí"), iV = H.indexOf("Thuế suất VAT"); for (let k = CT.ct.R.length - 1; k >= 0; k--) if (String(CT.ct.R[k][iC]) === c && CT.ct.R[k][iV] !== "") return CT.ct.R[k][iV]; return ""; }
 function ctPrev() {
   if (!CT.q || CT.lines.length) return null;
@@ -821,12 +821,12 @@ function ctDraw() {
   if (lk) { g.innerHTML = ""; ctSum(); return; }
   const rows = ctTree(), used = Object.create(null); CT.lines.forEach((l) => { used[l.code] = 1; });
   const vopt = (v) => '<option value="">— VAT —</option>' + CT.vat.map((x) => '<option value="' + x + '"' + (v !== "" && v != null && Number(v) === Number(x) ? " selected" : "") + ">" + (+(Number(x) * 100).toFixed(2)) + "%</option>").join("");
-  const nm = (r) => '<div class="nm" style="padding-left:' + (r.d - 1) * 14 + 'px"><span class="t">' + esc(r.c + "  " + (CT.cpm[r.c] ? CT.cpm[r.c].n : "⚠ Mã không có trong DM_MACHIPHI")) + "</span>" + (r.l ? '<button type="button" class="del" data-del="' + esc(r.c) + '" title="Xoá dòng">✕</button>' : "") + "</div>";
+  const nm = (r) => '<div class="nm" style="padding-left:' + (r.d - 1) * 14 + 'px"><span class="t" title="' + esc(r.c) + '">' + esc(CT.cpm[r.c] ? CT.cpm[r.c].n : r.c + "  ⚠ Mã không có trong DM_MACHIPHI") + "</span>" + (r.l ? '<button type="button" class="del" data-del="' + esc(r.c) + '" title="Xoá dòng">✕</button>' : "") + "</div>";
   let h = '<table class="ctg"><colgroup><col class="tt"><col><col class="gv"><col class="vt"></colgroup><thead><tr><th>TT</th><th>Loại chi phí</th><th style="text-align:right">Giá trị trước thuế</th><th style="text-align:right">Thuế VAT</th></tr></thead><tbody>';
   h += rows.map((r) => r.p
     ? '<tr class="par' + (r.d === 1 ? " lv1" : "") + '"><td class="tt">' + r.tt + "</td><td>" + nm(r) + '</td><td><span class="ro" data-sg="' + esc(r.c) + '">' + (fmt(r.s.g) || "0") + '</span></td><td><span class="ro" data-st="' + esc(r.c) + '">' + (fmt(r.s.t) || "0") + "</span></td></tr>"
     : '<tr><td class="tt">' + r.tt + "</td><td>" + nm(r) + '</td><td><input class="num ctgv" data-c="' + esc(r.c) + '" inputmode="decimal" placeholder="0" value="' + esc(fmt(r.l.gv)) + '"></td><td><select class="ctvat" data-c="' + esc(r.c) + '">' + vopt(r.l.vat) + '</select><div class="amt" data-st="' + esc(r.c) + '">' + (fmt(r.s.t) || "0") + "</div></td></tr>").join("");
-  const nopt = '<option value="">— Gõ để tìm khoản mục chi phí —</option>' + CT.codes.filter((c) => !used[c]).map((c) => { const x = CT.cpm[c], d = c.split(".").length; return '<option value="' + esc(c) + '">' + "\u00a0".repeat((d - 1) * 4) + esc(c + "  " + x.n) + (x.leaf ? "" : "  ▸") + "</option>"; }).join("");
+  const nopt = '<option value="">— Gõ để tìm khoản mục chi phí —</option>' + CT.codes.filter((c) => !used[c]).map((c) => { const x = CT.cpm[c], d = c.split(".").length; return '<option value="' + esc(c) + '">' + "\u00a0".repeat((d - 1) * 4) + esc(x.n) + (x.leaf ? "" : "  ▸") + "</option>"; }).join("");
   for (let i = 0; i < CT.adding; i++) h += '<tr class="new"><td class="tt">＋</td><td colspan="3"><select class="ctnew">' + nopt + "</select></td></tr>";
   if (!rows.length && !CT.adding) h += '<tr><td></td><td colspan="3" class="hint">Chưa có khoản mục – bấm ＋ Thêm khoản mục.</td></tr>';
   const pv = ctPrev(), T = ctTot();
@@ -848,7 +848,7 @@ function ctDraw() {
 }
 function ctAdd(c) {
   CT.adding = Math.max(0, CT.adding - 1);
-  if (!CT.lines.some((x) => x.code === c)) { const x = CT.cpm[c]; CT.lines.push({ code: c, gv: "", vat: x && x.leaf ? ctVat(c) : "", ri: null, hdr: !!(x && !x.leaf) }); }
+  if (!CT.lines.some((x) => x.code === c)) { const x = CT.cpm[c]; CT.lines.push({ code: c, gv: "", vat: ctVat(c), ri: null, hdr: !!(x && !x.leaf) }); }
   ctDraw();
   const inp = Object(document.querySelector('.ctgv[data-c="' + c + '"]')); if (inp.focus) inp.focus();
 }
@@ -858,14 +858,14 @@ function ctUpd() {
   ctSum();
 }
 function ctSum() {
-  const T = ctTot(), n = CT.lines.filter((l) => !l.hdr).length, da = $("ctDA"), o = da.options ? da.options[da.selectedIndex] : null, nm = o && da.value ? o.text : "";
+  const T = ctTot(), n = CT.lines.filter((l) => !ctKids(l.code)).length, da = $("ctDA"), o = da.options ? da.options[da.selectedIndex] : null, nm = o && da.value ? o.text : "";
   const it = [["Mã QĐ TMĐT", CT.ma || "—"], ["Số khoản mục chi tiết", n ? String(n) : "—"], ["Trước thuế", T.g ? fmt(T.g) + " đ" : "—"], ["Thuế VAT", T.t ? fmt(T.t) + " đ" : "—"], ["Sau thuế", T.g + T.t ? fmt(T.g + T.t) + " đ" : "—"]];
   $("sum").innerHTML = it.map((x) => '<div><div class="k">' + x[0] + '</div><div class="v" title="' + esc(x[1]) + '">' + esc(x[1]) + "</div></div>").join("");
   $("crumb").innerHTML = "TMĐT chi tiết / <b>" + esc(CT.ma || "Chọn QĐ TMĐT") + "</b>";
   $("fTitle").textContent = CT.ma ? CT.ma + " · " + nm : "Chọn QĐ TMĐT";
   $("fSub").textContent = n + " khoản mục chi tiết";
   const ed = CT.lines.some((l) => l.ri != null); $("badge").textContent = ed ? "Đang sửa" : "Thêm mới"; $("badge").className = "badge " + (ed ? "b-edit" : "b-new");
-  const ok2 = n > 0 && CT.lines.every((l) => l.hdr || (l.gv !== "" && l.gv != null && l.vat !== "" && l.vat != null));
+  const ok2 = n > 0 && CT.lines.every((l) => ctKids(l.code) || (l.gv !== "" && l.gv != null && l.vat !== "" && l.vat != null));
   const st = [!!CT.q, ok2, !!String($("user").value || "").trim()];
   $("c_s1").textContent = CT.q ? "Đã chọn QĐ" : "Chưa chọn"; $("c_s2").textContent = n + " dòng"; $("c_s3").textContent = "";
   st.forEach((ok, k) => { const tab = Object(document.querySelector('.tab[data-s="s' + (k + 1) + '"]')); if (tab.classList) { tab.classList.toggle("done", ok); tab.querySelector(".n").textContent = ok ? "✓" : String(k + 1); } });
@@ -876,8 +876,8 @@ async function saveCT() {
   if (!user) { $("user").classList.add("err"); $("user").focus(); return msg("Nhập tên người nhập (mục Lưu vết)", true); }
   localStorage.setItem("nguoiNhap", user); $("user").classList.remove("err");
   if (!CT.q) return msg("Chọn Tên dự án, Loại phê duyệt (và Lần điều chỉnh) trước", true);
-  const lines = CT.lines.filter((l) => !l.hdr);
-  const lone = CT.lines.find((l) => l.hdr && !CT.lines.some((x) => x !== l && x.code.indexOf(l.code + ".") === 0));
+  const lines = CT.lines.filter((l) => !ctKids(l.code));
+  const lone = null; if (0) CT.lines.find((l) => l.hdr && !CT.lines.some((x) => x !== l && x.code.indexOf(l.code + ".") === 0));
   if (lone) return msg("Khoản mục " + lone.code + " là mã tổng hợp – thêm khoản mục con hoặc xoá dòng", true);
   const mark = (c) => { const i = Object(document.querySelector('.ctgv[data-c="' + c + '"]')); if (i.classList) { i.classList.add("err"); i.focus(); } };
   const unk = lines.find((l) => !CT.cpm[l.code]); if (unk) return msg("Mã " + unk.code + " không có trong DM_MACHIPHI – xoá dòng này", true);
@@ -921,11 +921,11 @@ function mstBind() {
 }
 function apiDraw(open) {
   const w = $("apiW"); if (!w.id) return; const k = apiKey();
-  w.innerHTML = '<div class="hint" id="mstH"></div>' + (open || !k
+  w.innerHTML = '<div class="hint" id="mstH"></div>' + (MST[META.tn] && MST[META.tn].st ? '<div class="hint"><a href="#" id="mstSt">↻ Lấy trạng thái từ pha.vn</a> (dùng cả khi đang Sửa)</div>' : "") + (open || !k
     ? '<label for="apiK">🔑 API Key pha.vn (chỉ lưu trên máy này)</label><div class="krow"><input id="apiK" type="password" placeholder="Dán API Key (X-API-KEY)" value="' + esc(k) + '"><button type="button" class="link" id="apiS">Lưu key</button></div><div class="hint">Dùng để tự lấy tên, địa chỉ theo Mã số thuế. Đăng ký key tại pha.vn.</div>'
     : '<div class="hint">🔑 Đã có API Key pha.vn · <a href="#" id="apiE">đổi key</a></div>');
   if ($("apiS").id) $("apiS").onclick = () => { localStorage.setItem("phaKey", String($("apiK").value || "").trim()); apiDraw(false); msg("Đã lưu API Key pha.vn trên máy này", false); };
-  if ($("apiE").id) $("apiE").onclick = (e) => { e.preventDefault(); apiDraw(true); };
+  if ($("apiE").id) $("apiE").onclick = (e) => { e.preventDefault(); apiDraw(true); }; if ($("mstSt").id) $("mstSt").onclick = (e) => { e.preventDefault(); run(mstStatus); };
 }
 function mstHint(t, bad) { const h = $("mstH"); if (h.id) { h.textContent = t; h.className = "hint" + (bad ? " warn" : ""); } }
 async function mstCheck() {
@@ -948,12 +948,12 @@ async function mstCheck() {
   } catch (e) { return mstHint("⚠ Không lấy được từ pha.vn: " + e.message + " – vui lòng nhập tay", true); }
   const x = (d && (d.data || (d.items && d.items[0]) || d)) || {};
   const pk = (ks) => { for (const n of ks) if (x[n]) return String(x[n]).trim(); return ""; };
-  const nm = pk(["name", "company_name", "ten"]), ad = pk(["address", "dia_chi"]), rp = pk(["representative", "legal_representative", "owner", "nguoi_dai_dien"]), st = pk(["status_text", "trang_thai"]);
+  const nm = pk(["name", "company_name", "ten"]), ad = pk(["address", "dia_chi"]), rp = pk(["representative", "legal_representative", "owner", "nguoi_dai_dien"]), st = pk(["status_text", "status", "trang_thai", "tinh_trang", "trangThai", "tinhTrang", "status_name"]);
   if (!nm && !ad) return mstHint("⚠ pha.vn không trả dữ liệu cho MST này – vui lòng nhập tay", true);
   const put = (n, s) => { const f = F(n); if (f && s && E(f).id) setRaw(f, s); };
   put(c.name, nm); put(c.addr, ad); if (c.rep) put(c.rep, rp);
   const sf = c.st ? F(c.st) : null;
-  if (sf && sf.opts && st) { const o = sf.opts.map(String), t = /ngừng|giải thể|đóng|tạm/i.test(st) ? o.find((s) => /ngừng|tạm/i.test(s)) : o.find((s) => /hoạt động/i.test(s) && !/ngừng/i.test(s)); if (t) setRaw(sf, t); }
+  if (sf && st && E(sf).id) setRaw(sf, st);
   refresh(); mstHint("✓ Đã lấy thông tin từ pha.vn" + (st ? " · " + st : "") + " – kiểm tra lại trước khi lưu");
 }
 
@@ -1403,6 +1403,115 @@ async function ttRestore(R, nk) {
   XS.bb = s.bb.slice(); if (nk && XS.bb.indexOf(nk) < 0) XS.bb.push(nk); XS.inv = s.inv; XS.dotUser = s.dotUser;
   cbSyncAll(); ttBB(); ttInv(); xRefresh();
   msg(nk ? "✅ Đã thêm biên bản " + nk + " và chọn vào hồ sơ thanh toán" : "↩ Đã quay lại Thanh toán", false);
+}
+// ===== Trạng thái theo pha.vn (dùng cả khi Sửa) =====
+async function phaGet(v) {
+  const key = apiKey(); if (!key) { apiDraw(true); throw new Error("Chưa có API Key pha.vn"); }
+  const r = await fetch("https://pha.vn/api/v1/tax?q=" + encodeURIComponent(v), { headers: { "X-API-KEY": key, "Accept": "application/json" } });
+  const d = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(({ 401: "API Key không hợp lệ", 403: "Gói API chưa mở tra cứu MST", 404: "Không tìm thấy MST", 429: "Vượt hạn mức gọi API" })[r.status] || ("HTTP " + r.status));
+  return (d && (d.data || (d.items && d.items[0]) || d)) || {};
+}
+async function mstStatus() {
+  const c = MST[META.tn], fd = F("Mã số thuế"); if (!c || !c.st || !fd) return;
+  const v = val(fd).replace(/\s+/g, ""); if (!v) return mstHint("Nhập Mã số thuế trước", true);
+  mstHint("⏳ Đang lấy trạng thái từ pha.vn…");
+  let x; try { x = await phaGet(v); } catch (e) { return mstHint("⚠ Không lấy được từ pha.vn: " + e.message, true); }
+  let st = ""; for (const n of ["status_text", "status", "trang_thai", "tinh_trang", "trangThai", "tinhTrang", "status_name"]) if (x[n]) { st = String(x[n]).trim(); break; }
+  if (!st) return mstHint("⚠ pha.vn không trả trạng thái cho MST này", true);
+  const sf = F(c.st); if (sf) setRaw(sf, st); refresh();
+  mstHint("✓ Trạng thái theo pha.vn: " + st + " – bấm " + (MODE === "new" ? "Lưu" : "Cập nhật") + " để ghi vào file");
+}
+// ===== TMĐT chi tiết: khoản mục có dòng con thì là dòng tổng hợp =====
+function ctKids(c) { return CT.lines.some((x) => x.code.indexOf(c + ".") === 0); }
+// ===== Xoá dữ liệu =====
+const DEL_SKIP = ["tbl_HDHienHanh", "tbl_TVHienHanh", "tbl_DataDictionary", "tbl_DanhSachBang", "tbl_Checklist", "tbl_NhomThamSo"];
+const DEL_ALIAS = { tbl_CongTy: ["Mã CĐT"], tbl_NhaThau: ["Mã nhà thầu trúng thầu", "Nhà thầu nhận tiền"], tbl_TaiKhoanNT: ["TK thụ hưởng"], tbl_MaChiPhi: ["Mã cha"], tbl_NghiemThu: ["Danh sách biên bản"] };
+const DEL_CASCADE = { tbl_ThanhToan: [["tbl_HoaDon", "Mã giao dịch"]] };
+const DEL_NOREF = ["tbl_ThamSo"];
+let DELARM = 0;
+function delTarget() {
+  if (!META) return null;
+  if (META.ct === 1) return CT && CT.q && CT.ma && CT.lines.some((l) => l.ri != null) ? { k: "ct", tn: CT_TN, key: CT.ma, lb: "toàn bộ chi tiết của " + CT.ma } : null;
+  if (X()) return XS && MODE === "edit" && XS.ei != null && XS.ma ? { k: "x", tn: META.tn, key: String(XS.ma), lb: String(XS.ma) } : null;
+  if (MODE !== "edit" || META.editIndex == null || !META.rows || !META.rows[META.editIndex]) return null;
+  const key = String(META.rows[META.editIndex][0]); return key ? { k: "g", tn: META.tn, key: key, ix: META.editIndex, lb: key } : null;
+}
+function delDisarm() { DELARM = 0; clearTimeout(delDisarm.h); const b = $("delB"); if (b.id) { b.classList.remove("arm"); b.textContent = "🗑 Xoá"; } }
+function delVis() { const b = $("delB"); if (!b.id) return; const t = delTarget(); b.hidden = !t; if (!t && DELARM) delDisarm(); }
+async function delClick() {
+  const t = delTarget(); if (!t) return msg("Chọn bản ghi cần xoá (chế độ Sửa)", true);
+  if (!DELARM) {
+    DELARM = 1; const b = $("delB"); b.classList.add("arm"); b.textContent = "⚠ Xác nhận xoá";
+    clearTimeout(delDisarm.h); delDisarm.h = setTimeout(delDisarm, 6000);
+    return msg("Bấm “⚠ Xác nhận xoá” để xoá " + t.lb + " (có thể Ctrl+Z trong Excel nếu lỡ tay)", true);
+  }
+  delDisarm();
+  if (t.k === "ct") return delCT(t);
+  const refs = await delRefs(t);
+  if (refs.length) return msg("⛔ Không xoá được " + t.key + " – đang được dùng tại: " + refs.join("; ") + ". Xoá hoặc đổi các dòng liên quan trước.", true);
+  let nC = 0;
+  await Excel.run(async (ctx) => {
+    const tb = ctx.workbook.tables.getItem(t.tn), body = tb.getDataBodyRange(); body.load("values,rowCount"); await ctx.sync();
+    let k = t.ix != null && body.values[t.ix] && String(body.values[t.ix][0]) === t.key ? t.ix : body.values.findIndex((r) => String(r[0]) === t.key);
+    if (k < 0) throw new Error("Không tìm thấy " + t.key + " trong bảng");
+    await delRow(ctx, tb, k, body.rowCount);
+    for (const c of (DEL_CASCADE[t.tn] || [])) nC += await delWhere(ctx, c[0], c[1], t.key);
+    await delViews(ctx);
+  });
+  await build(t.tn);
+  if (X()) xMode("edit"); else setMode("edit");
+  msg("🗑 Đã xoá " + t.key + (nC ? " (kèm " + nC + " dòng liên quan)" : ""), false);
+}
+async function delRow(ctx, tb, k, n) {
+  if (n > 1) { tb.rows.getItemAt(k).delete(); await ctx.sync(); return; }
+  const r = tb.getDataBodyRange().getRow(0); r.load("formulas"); await ctx.sync();
+  r.formulas = [r.formulas[0].map((f) => String(f).charAt(0) === "=" ? f : "")]; await ctx.sync();
+}
+async function delWhere(ctx, tn, col, key) {
+  try {
+    const tb = ctx.workbook.tables.getItem(tn), h = tb.getHeaderRowRange(), b = tb.getDataBodyRange(); h.load("values"); b.load("values,rowCount"); await ctx.sync();
+    const i = h.values[0].indexOf(col); if (i < 0) return 0;
+    const ks = []; b.values.forEach((r, k) => { if (String(r[i]) === String(key)) ks.push(k); });
+    let n = b.rowCount; ks.sort((a, c) => c - a);
+    for (const k of ks) { await delRow(ctx, tb, k, n); n--; }
+    return ks.length;
+  } catch (e) { return 0; }
+}
+async function delViews(ctx) {
+  try {
+    const wb = ctx.workbook, hd = wb.tables.getItem("tbl_HopDong").getDataBodyRange(), dv = wb.names.getItem("lst_DonViTC").getRange();
+    const v1 = wb.tables.getItem("tbl_HDHienHanh"), v2 = wb.tables.getItem("tbl_TVHienHanh"), b1 = v1.getDataBodyRange(), b2 = v2.getDataBodyRange();
+    hd.load("rowCount"); dv.load("rowCount"); b1.load("rowCount"); b2.load("rowCount"); await ctx.sync();
+    const cut = (t, have, need) => { for (let k = have - 1; k >= Math.max(need, 1); k--) t.rows.getItemAt(k).delete(); };
+    cut(v1, b1.rowCount, hd.rowCount); cut(v2, b2.rowCount, dv.rowCount); await ctx.sync();
+  } catch (e) { }
+}
+async function delRefs(t) {
+  if (DEL_NOREF.indexOf(t.tn) >= 0) return [];
+  const out = [];
+  await Excel.run(async (ctx) => {
+    const ts = ctx.workbook.tables; ts.load("items/name"); await ctx.sync();
+    const oh = ctx.workbook.tables.getItem(t.tn).getHeaderRowRange(); oh.load("values"); await ctx.sync();
+    const al = DEL_ALIAS[t.tn] || [], names = [String(oh.values[0][0])].concat(al), cas = (DEL_CASCADE[t.tn] || []).map((c) => c[0]);
+    const L = ts.items.filter((x) => DEL_SKIP.indexOf(x.name) < 0 && cas.indexOf(x.name) < 0).map((x) => { const h = x.getHeaderRowRange(), b = x.getDataBodyRange(); h.load("values"); b.load("values"); return { n: x.name, h: h, b: b }; });
+    await ctx.sync();
+    const hit = (v) => { const s = String(v == null ? "" : v).trim(); return s !== "" && (s === t.key || s.split(/\s*[;,]\s*/).indexOf(t.key) >= 0); };
+    L.forEach((x) => {
+      const self = x.n === t.tn, cols = x.h.values[0].map((c, i) => [String(c), i]).filter((c) => (self ? al : names).indexOf(c[0]) >= 0);
+      if (!cols.length) return;
+      let n = 0; x.b.values.forEach((r) => { if (self && String(r[0]) === t.key) return; if (cols.some((c) => hit(r[c[1]]))) n++; });
+      if (n) out.push((TABLES[x.n] ? TABLES[x.n].replace(/^\S+\s/, "") : x.n.replace(/^tbl_/, "")) + " (" + n + " dòng)");
+    });
+  });
+  return out;
+}
+async function delCT(t) {
+  let n = 0;
+  await Excel.run(async (ctx) => { n = await delWhere(ctx, CT_TN, CT.ct.H[0], t.key); });
+  const d = await ctLoad(); CT.da = d.da; CT.qd = d.qd; CT.ct = d.ct; META.rows = d.ct.R;
+  const q = CT.qd.R.find((r) => String(r[0]) === t.key) || null; CT.q = undefined; ctPick(q);
+  msg("🗑 Đã xoá " + n + " dòng chi tiết của " + t.key, false);
 }
 </script>
 </body>
