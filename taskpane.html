@@ -215,7 +215,7 @@ const OPT = {
 };
 const MST = { tbl_CongTy: { name: "Tên công ty", addr: "Địa chỉ trụ sở", st: "Trạng thái" }, tbl_NhaThau: { name: "Tên nhà thầu", addr: "Địa chỉ", rep: "Người đại diện" } };
 const PICKBY = { tbl_GoiThau: ["Tên gói thầu", "gói thầu"], tbl_LienDanh: ["Tên liên danh", "liên danh"], tbl_DuAn: ["Tên dự án", "dự án"], tbl_CongTy: ["Tên công ty", "tên công ty"], tbl_NhaThau: ["Tên nhà thầu", "nhà thầu"], tbl_HopDong: ["Số hợp đồng", "hợp đồng"] };
-let META = null, MODE = "new", CUR = "tbl_DuAn", RET = null;
+let META = null, MODE = "new", CUR = "tbl_DuAn", RET = null, RETS = []; /* RETS: ngăn xếp quay lại form trước (thêm lồng nhiều cấp) */
 const $ = (id) => Object(document.getElementById(id));
 const colNum = (s) => s.split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
 const BASE = Date.UTC(1899, 11, 30);
@@ -290,7 +290,7 @@ async function build(tn) {
           }
         }
       }
-      fields.push(fd);
+      if (fd.opts && fd.type !== "text" && fd.opts.some((o) => String(o).trim() !== "" && isNaN(Number(String(o).replace(/[%\s,]/g, ""))))) fd.type = "text"; /* ô chọn danh sách chữ luôn là text, không phụ thuộc định dạng số của cột */ fields.push(fd);
     }
     for (const fd of fields) { const L = (LOOKUP_T[tn] || {})[fd.name] || LOOKUP[fd.name]; if (!L || fd.formula) continue; try { const lt = ctx.workbook.tables.getItem(L.tbl), lh = lt.getHeaderRowRange(), lb = lt.getDataBodyRange(); lh.load("values"); lb.load("values"); await ctx.sync(); const LH = lh.values[0], k = LH.indexOf(L.key), sh = LH.indexOf(L.show), st = L.status ? LH.indexOf(L.status) : -1; fd.lk = lb.values.filter((x) => x[k] !== "").map((x) => ({ v: String(x[k]), t: String(x[sh]), off: st >= 0 && x[st] !== "" && x[st] !== "Hoạt động" })); fd.opts = fd.lk.map((x) => x.v); fd.label = L.label; fd.addTo = L.add || null; (L.hide || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.hidden = true; }); } catch (e) { } }
     for (const fd of fields) { const S = SRC[fd.name]; if (!S || fd.formula || H.indexOf(S.by) < 0) continue; try { const st = ctx.workbook.tables.getItem(S.tbl), sh = st.getHeaderRowRange(), sb = st.getDataBodyRange(); sh.load("values"); sb.load("values"); await ctx.sync(); const SH = sh.values[0], a = SH.indexOf(S.by), b = SH.indexOf(S.key); fd.srcRows = sb.values.filter((x) => x[b] !== "").map((x) => [String(x[a]), String(x[b])]); fd.opts = fd.srcRows.map((x) => x[1]); fd.dep = S.by; fd.depMode = "src"; fd.free = true; } catch (e) { } }
@@ -717,7 +717,7 @@ function navDraw() {
   const on = Object(document.querySelector("#nav a.on")); if (on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   stickTabs();
 }
-function go(tn) { RET = null; CUR = tn; navDraw(); run(() => build(tn)); }
+function go(tn) { RET = null; RETS = []; CUR = tn; navDraw(); run(() => build(tn)); }
 function stickTabs() { const h = Object(document.querySelector(".top")); if (h.offsetHeight) $("tabs").style.top = h.offsetHeight + "px"; }
 function backBar() {
   const b = $("back"); if (!b.id) return; const on = !!(RET && RET.tn !== CUR);
@@ -726,7 +726,7 @@ function backBar() {
 }
 function goAdd(fd) {
   const vals = Object.create(null); META.fields.forEach((x) => { const el = E(x); if (el.id && !isRO(x)) vals[x.name] = el.value; });
-  RET = { tn: META.tn, mode: MODE, key: MODE === "edit" && META.editIndex != null ? String(META.rows[META.editIndex][0]) : "", vals: vals, field: fd.name, label: TABLES[META.tn], gt: GT ? GT.rows.map((x) => Object.assign({}, x)) : null, hd: HD ? JSON.parse(JSON.stringify({ lines: HD.lines, pm: HD.pm })) : null, slot: fd.slot == null ? null : fd.slot };
+  if (RET) RETS.push(RET); RET = { tn: META.tn, mode: MODE, key: MODE === "edit" && META.editIndex != null ? String(META.rows[META.editIndex][0]) : "", vals: vals, field: fd.name, label: TABLES[META.tn], gt: GT ? GT.rows.map((x) => Object.assign({}, x)) : null, hd: HD ? JSON.parse(JSON.stringify({ lines: HD.lines, pm: HD.pm })) : null, slot: fd.slot == null ? null : fd.slot };
   MODE = "new"; CUR = fd.addTo; navDraw(); run(async () => { await build(fd.addTo); preFill(); });
 }
 function setRaw(fd, v) {
@@ -735,7 +735,7 @@ function setRaw(fd, v) {
   el.value = v; lkHint(fd); if (el.tagName === "SELECT") cbSync(el);
 }
 async function backRet(nk) {
-  const R = RET; RET = null; if (!R) return; if (R.custom) return ttRestore(R, nk);
+  const R = RET; RET = RETS.pop() || null; if (!R) return; if (R.custom) return ttRestore(R, nk);
   MODE = R.mode === "edit" && R.key ? "edit" : "new";
   await build(R.tn);
   if (MODE === "edit") { $("pick").value = R.key; cbSync($("pick")); await loadRow(R.key); }
