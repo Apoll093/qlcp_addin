@@ -213,7 +213,7 @@ const OPT = {
   "Tên công ty": { req: 1, full: 1, ph: "VD: Công ty CP Phát triển ABC" }, "Tên nhà thầu": { req: 1, full: 1 }, "Địa chỉ": { full: 1 }, "Địa chỉ trụ sở": { full: 1 }, "Mã số thuế": { req: 1, ph: "VD: 0101234567 – Enter để tra cứu" },
   "Ghi chú": { full: 1, area: 1 }, "Nội dung": { full: 1 }, "Diễn giải": { full: 1 }, "Kiểm tra": { full: 1 }, "Tên dự toán / hạng mục": { full: 1 }, "Tên gói thầu": { full: 1, ph: "VD: Thi công phần ngầm – Khu đô thị ABC" }, "Tên liên danh": { req: 1, full: 1, ph: "VD: Liên danh Alpha – Gamma" }, "Số QĐ KQLCNT": { ph: "VD: 100/QĐ-KQLCNT" }, "Số hợp đồng": { ph: "VD: 01/2026/HĐXD" }, "Nội dung hợp đồng": { full: 1 }, "Thời gian (ngày)": { unit: "ngày" }, "Số thành viên": { unit: "thành viên", ph: "VD: 2" }, "Thời hạn hiệu lực bảo lãnh (ngày)": { unit: "ngày" }, "Thời gian bảo hành (tháng)": { unit: "tháng" }, "Số đợt tạm ứng": { unit: "đợt", ph: "VD: 1" }, "Số đợt tạm ứng (Net)": { unit: "đợt", ph: "VD: 1" }, "Thời hạn hiệu lực BL tạm ứng (ngày)": { unit: "ngày" }, "Thời hạn hiệu lực BL thanh toán (ngày)": { unit: "ngày" }
 };
-const MST = { tbl_CongTy: { name: "Tên công ty", addr: "Địa chỉ trụ sở", st: "Trạng thái" }, tbl_NhaThau: { name: "Tên nhà thầu", addr: "Địa chỉ", rep: "Người đại diện" } };
+const MST = { tbl_CongTy: { name: "Tên công ty", addr: "Địa chỉ trụ sở", st: "Trạng thái" }, tbl_NhaThau: { name: "Tên nhà thầu", addr: "Địa chỉ", rep: "Người đại diện" } }; /* Chuẩn hoá trạng thái công ty về danh mục lst_TrangThaiHoatDong (Hoạt động / Tạm ngừng / Giải thể) – dùng chung cho tra cứu pha.vn và kiểm tra CĐT */ function stNorm(s) { s = String(s == null ? "" : s).trim(); if (!s) return ""; const l = s.toLowerCase(); if (/giải thể/.test(l) || (/chấm dứt|đóng mã/.test(l) && !/chưa/.test(l))) return "Giải thể"; if (/ngừng|tạm|nghỉ|không hoạt động|chưa/.test(l)) return "Tạm ngừng"; if (/hoạt động/.test(l)) return "Hoạt động"; return s; }
 const PJPICK = { tbl_GoiThau: 1, tbl_HopDong: 1 }; const SUGG = { tbl_GoiThau: { f: "Tên gói thầu", da: "Mã dự án", t: "Gói thầu" }, tbl_HopDong: { f: "Số hợp đồng", da: "Mã dự án", t: "Hợp đồng" }, tbl_DuAn: { f: "Tên dự án", t: "Dự án" }, tbl_CongTy: { f: "Tên công ty", t: "Công ty" }, tbl_NhaThau: { f: "Tên nhà thầu", t: "Nhà thầu" }, tbl_LienDanh: { f: "Tên liên danh", t: "Liên danh" } }; const PICKBY = { tbl_GoiThau: ["Tên gói thầu", "gói thầu"], tbl_LienDanh: ["Tên liên danh", "liên danh"], tbl_DuAn: ["Tên dự án", "dự án"], tbl_CongTy: ["Tên công ty", "tên công ty"], tbl_NhaThau: ["Tên nhà thầu", "nhà thầu"], tbl_HopDong: ["Số hợp đồng", "hợp đồng"] };
 let META = null, MODE = "new", CUR = "tbl_DuAn", RET = null, RETS = []; /* RETS: ngăn xếp quay lại form trước (thêm lồng nhiều cấp) */
 const $ = (id) => Object(document.getElementById(id));
@@ -292,7 +292,7 @@ async function listValues(ctx, n) {
       }
       if (fd.opts && fd.type !== "text" && fd.opts.some((o) => String(o).trim() !== "" && isNaN(Number(String(o).replace(/[%\s,]/g, ""))))) fd.type = "text"; /* ô chọn danh sách chữ luôn là text, không phụ thuộc định dạng số của cột */ fields.push(fd);
     }
-    for (const fd of fields) { const L = (LOOKUP_T[tn] || {})[fd.name] || LOOKUP[fd.name]; if (!L || fd.formula) continue; try { const lt = ctx.workbook.tables.getItem(L.tbl), lh = lt.getHeaderRowRange(), lb = lt.getDataBodyRange(); lh.load("values"); lb.load("values"); await ctx.sync(); const LH = lh.values[0], k = LH.indexOf(L.key), sh = LH.indexOf(L.show), st = L.status ? LH.indexOf(L.status) : -1; fd.lk = lb.values.filter((x) => x[k] !== "").map((x) => ({ v: String(x[k]), t: String(x[sh]), off: st >= 0 && x[st] !== "" && x[st] !== "Hoạt động" })); fd.opts = fd.lk.map((x) => x.v); fd.label = L.label; fd.addTo = L.add || null; (L.hide || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.hidden = true; }); } catch (e) { } }
+    for (const fd of fields) { const L = (LOOKUP_T[tn] || {})[fd.name] || LOOKUP[fd.name]; if (!L || fd.formula) continue; try { const lt = ctx.workbook.tables.getItem(L.tbl), lh = lt.getHeaderRowRange(), lb = lt.getDataBodyRange(); lh.load("values"); lb.load("values"); await ctx.sync(); const LH = lh.values[0], k = LH.indexOf(L.key), sh = LH.indexOf(L.show), st = L.status ? LH.indexOf(L.status) : -1; fd.lk = lb.values.filter((x) => x[k] !== "").map((x) => ({ v: String(x[k]), t: String(x[sh]), off: st >= 0 && x[st] !== "" && stNorm(x[st]) !== "Hoạt động" })); fd.opts = fd.lk.map((x) => x.v); fd.label = L.label; fd.addTo = L.add || null; (L.hide || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.hidden = true; }); } catch (e) { } }
     for (const fd of fields) { const S = SRC[fd.name]; if (!S || fd.formula || H.indexOf(S.by) < 0) continue; try { const st = ctx.workbook.tables.getItem(S.tbl), sh = st.getHeaderRowRange(), sb = st.getDataBodyRange(); sh.load("values"); sb.load("values"); await ctx.sync(); const SH = sh.values[0], a = SH.indexOf(S.by), b = SH.indexOf(S.key); fd.srcRows = sb.values.filter((x) => x[b] !== "").map((x) => [String(x[a]), String(x[b])]); fd.opts = fd.srcRows.map((x) => x[1]); fd.dep = S.by; fd.depMode = "src"; fd.free = true; } catch (e) { } }
     (HIDE[tn] || []).forEach((n) => { const hf = fields.find((y) => y.name === n); if (hf) hf.off = true; }); if (EDITSEL[tn]) [1, 2].forEach((j) => { const fl = fields.find((y) => y.name === EDITSEL[tn][j]); if (fl && !fl.formula && (j === 2 || !fl.opts)) { fl.opts = []; fl.free = true; } }); if (AUTOC[tn]) { const fa = fields.find((y) => y.name === AUTOC[tn].f); if (fa && !fa.formula) fa.auto = true; } if (tn === "tbl_GoiThau" || tn === "tbl_LienDanh") await gtMeta(ctx, tn, fields); if (tn === "tbl_HopDong") await hdMeta(ctx, fields);
     let ct = null;
@@ -996,8 +996,8 @@ async function mstCheck() {
   const put = (n, s) => { const f = F(n); if (f && s && E(f).id) setRaw(f, s); };
   put(c.name, nm); put(c.addr, ad); if (c.rep) put(c.rep, rp);
   const sf = c.st ? F(c.st) : null;
-  if (sf && st && E(sf).id) setRaw(sf, st);
-  refresh(); mstHint("✓ Đã lấy thông tin từ pha.vn" + (st ? " · " + st : "") + " – kiểm tra lại trước khi lưu");
+  if (sf && st && E(sf).id) setRaw(sf, stNorm(st));
+  refresh(); mstHint("✓ Đã lấy thông tin từ pha.vn" + (st ? " · " + st + " → " + stNorm(st) : "") + " – kiểm tra lại trước khi lưu");
 }
 
 // ===== Nghiệm thu & Thanh toán – form riêng =====
@@ -1463,8 +1463,8 @@ async function mstStatus() {
   let x; try { x = await phaGet(v); } catch (e) { return mstHint("⚠ Không lấy được từ pha.vn: " + e.message, true); }
   let st = ""; for (const n of ["status_text", "status", "trang_thai", "tinh_trang", "trangThai", "tinhTrang", "status_name"]) if (x[n]) { st = String(x[n]).trim(); break; }
   if (!st) return mstHint("⚠ pha.vn không trả trạng thái cho MST này", true);
-  const sf = F(c.st); if (sf) setRaw(sf, st); refresh();
-  mstHint("✓ Trạng thái theo pha.vn: " + st + " – bấm " + (MODE === "new" ? "Lưu" : "Cập nhật") + " để ghi vào file");
+  const sf = F(c.st); if (sf) setRaw(sf, stNorm(st)); refresh();
+  mstHint("✓ Trạng thái theo pha.vn: " + st + " → " + stNorm(st) + " – bấm " + (MODE === "new" ? "Lưu" : "Cập nhật") + " để ghi vào file");
 }
 // ===== TMĐT chi tiết: khoản mục có dòng con thì là dòng tổng hợp =====
 /* ===== Hợp đồng: tab 👥 Thành viên LD – phần chia theo thành viên nhập riêng, tab Thông tin chỉ hiện tổng ===== */
