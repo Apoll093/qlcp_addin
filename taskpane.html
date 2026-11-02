@@ -62,7 +62,7 @@ input:disabled,textarea:disabled{background:#F1F5F9;color:#94A3B8;cursor:not-all
 .lockmsg{display:none;font-size:11.5px;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:6px;padding:5px 8px;margin-bottom:8px}
 .cb{position:relative;min-width:0}.cb>select{display:none!important}
 .cb-btn{width:100%;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #CBD5E1;border-radius:6px;font:inherit;background:#fff;color:var(--txt);cursor:pointer;text-align:left}
-.cb-btn .cb-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cb-btn .cb-a{color:var(--mut);font-size:10px}
+.cb-btn .cb-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cb.cb-wrap .cb-btn{align-items:flex-start}.cb.cb-wrap .cb-btn .cb-t{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35}.cb.cb-wrap .cb-btn .cb-a{margin-top:3px}.cb-item{overflow-wrap:anywhere;line-height:1.35}.cb-btn .cb-a{color:var(--mut);font-size:10px}
 .cb-btn.ph .cb-t{color:#94A3B8}.cb-btn:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
 .cb-btn:disabled{background:#F1F5F9;color:#94A3B8;cursor:not-allowed}
 .cb-pop{position:fixed;z-index:60;background:#fff;border:1px solid #CBD5E1;border-radius:8px;box-shadow:0 8px 24px rgba(15,42,68,.18);display:flex;flex-direction:column;overflow:hidden}
@@ -437,7 +437,7 @@ function cbSync(sel) {
   const w = sel && sel.parentNode; if (!w || !w.classList || !w.classList.contains("cb")) return;
   const b = w.querySelector(".cb-btn"), o = sel.options[sel.selectedIndex], t = o && sel.value !== "" ? o.text : "";
   b.querySelector(".cb-t").textContent = t || (sel.options[0] ? sel.options[0].text : "— Chọn —");
-  b.classList.toggle("ph", !t); b.disabled = sel.disabled; b.title = t; b.classList.toggle("err", sel.classList.contains("err"));
+  b.classList.toggle("ph", !t); const fGT = META && META.tn === "tbl_HopDong" ? F("Mã gói thầu") : null; w.classList.toggle("cb-wrap", !!(fGT && E(fGT) === sel)); b.disabled = sel.disabled; b.title = t; b.classList.toggle("err", sel.classList.contains("err"));
   if (CB && CB.sel === sel && sel.disabled) cbClose();
 }
 function cbSyncAll() { document.querySelectorAll("select[data-cb]").forEach((s) => cbSync(s)); }
