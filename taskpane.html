@@ -543,10 +543,10 @@ function fillPick() {
   const pb = PICKBY[META.tn], pi = pb ? META.H.indexOf(pb[0]) : -1; $("pick").innerHTML = '<option value="">— ' + (pjOn() && !$("pickDA").value ? "Chọn dự án trước" : pb ? "Chọn " + pb[1] + " cần sửa" : "Chọn mã cần sửa") + ' —</option>' + META.rows.filter((r) => r[0] !== "" && pjHas(r)).map((r) => '<option value="' + esc(r[0]) + '">' + esc(pi >= 0 ? String(r[pi]) : r[0] + (typeof r[1] === "string" && r[1] ? " – " + r[1] : "")) + "</option>").join("");
 }
 
-function nextCode() {
+const DEFCODE = { tbl_CongTy: "CT001", tbl_NhaThau: "NT001", tbl_LienDanh: "LD001", tbl_DuAn: "DA001", tbl_TaiKhoanNT: "TK001" }; /* mã đầu tiên khi bảng chưa có dữ liệu */ function nextCode() {
   const k = META.fields[0]; if (k.formula) return "";
   const ks = META.rows.map((r) => String(r[0])).filter(Boolean);
-  const m0 = ks.length ? ks[ks.length - 1].match(/^(.*?)(\d+)$/) : null; if (!m0) return "";
+  const m0 = ks.length ? ks[ks.length - 1].match(/^(.*?)(\d+)$/) : null; if (!m0) return ks.length ? "" : (DEFCODE[META.tn] || "");
   let mx = 0; ks.forEach((s) => { const m = s.match(/^(.*?)(\d+)$/); if (m && m[1] === m0[1]) mx = Math.max(mx, +m[2]); });
   return m0[1] + String(mx + 1).padStart(m0[2].length, "0");
 }
@@ -658,7 +658,7 @@ async function save() {
   const user = String($("user").value || "").trim();
   if (!user) { $("user").classList.add("err"); $("user").focus(); return msg("Nhập tên người nhập (mục Ghi chú & lưu vết)", true); }
   localStorage.setItem("nguoiNhap", user); $("user").classList.remove("err"); hdPreSave();
-  autoCode();
+  autoCode(); { const k = META.fields[0]; if (MODE === "new" && k && !k.formula && getVal(k) === "") { const c = nextCode(); if (c) E(k).value = c; } }
   const miss = META.fields.filter((fd) => !isRO(fd) && !fd.off && !wHidden(fd) && fd.req && getVal(fd) === "");
   miss.forEach((fd) => E(fd).classList.add("err"));
   cbSyncAll();
@@ -669,7 +669,7 @@ async function save() {
   const isNew = MODE === "new";
   if (!isNew && META.editIndex == null) return msg("Chọn mã cần sửa", true);
   const k0 = META.fields[0];
-  if (isNew && !k0.formula && META.rows.some((r) => String(r[0]) === String(getVal(k0)))) { E(k0).classList.add("err"); return msg("Mã " + getVal(k0) + " đã tồn tại", true); }
+  if (isNew && !k0.formula) { const k0v = String(getVal(k0)); if (!k0v) { E(k0).classList.add("err"); return msg("Chưa sinh được " + k0.name + " – vui lòng bấm Thêm mới lại hoặc nhập mã đầu tiên trên sheet", true); } if (META.rows.some((r) => String(r[0]) !== "" && String(r[0]) === k0v)) { E(k0).classList.add("err"); return msg(k0.name + " " + k0v + " đã tồn tại", true); } }
   const bad = META.fields.filter((fd) => fd.type === "date" && /^Ngày (kết thúc|hoàn thành|hết hạn|đáo hạn)/.test(fd.name)).find((fd) => {
     const st = META.fields.find((x) => x.type === "date" && /^Ngày (bắt đầu|khởi công|phát hành|ký)/.test(x.name));
     return st && getVal(st) !== "" && getVal(fd) !== "" && getVal(fd) < getVal(st);
