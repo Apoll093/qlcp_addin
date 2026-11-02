@@ -437,7 +437,7 @@ function cbSync(sel) {
   const w = sel && sel.parentNode; if (!w || !w.classList || !w.classList.contains("cb")) return;
   const b = w.querySelector(".cb-btn"), o = sel.options[sel.selectedIndex], t = o && sel.value !== "" ? o.text : "";
   b.querySelector(".cb-t").textContent = t || (sel.options[0] ? sel.options[0].text : "— Chọn —");
-  b.classList.toggle("ph", !t); const fGT = META && META.tn === "tbl_HopDong" ? F("Mã gói thầu") : null; w.classList.toggle("cb-wrap", !!(fGT && E(fGT) === sel)); b.disabled = sel.disabled; b.title = t; b.classList.toggle("err", sel.classList.contains("err"));
+  b.classList.toggle("ph", !t); const fGT = META && META.H && META.H.indexOf("Mã gói thầu") >= 0 ? F("Mã gói thầu") : null; w.classList.toggle("cb-wrap", sel.id === "pick" || sel.id === "pickDA" || !!(fGT && E(fGT) === sel)); b.disabled = sel.disabled; b.title = t; b.classList.toggle("err", sel.classList.contains("err"));
   if (CB && CB.sel === sel && sel.disabled) cbClose();
 }
 function cbSyncAll() { document.querySelectorAll("select[data-cb]").forEach((s) => cbSync(s)); }
