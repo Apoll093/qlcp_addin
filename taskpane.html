@@ -706,18 +706,18 @@ async function save() {
   if (isNew && RET && RET.tn !== META.tn) await backRet(String(key));
 }
 // ===== Menu 2 tầng & quay lại form trước =====
-const LASTSUB = Object.create(null);
+const LASTSUB = Object.create(null); let NAVSEL = null; /* tab menu con được chọn (Thành viên LD dùng chung màn hình Hợp đồng) */
 function navDraw() {
   const g = MENU.findIndex((m) => m.s.some((x) => x[0] === CUR)); if (g >= 0) LASTSUB[g] = CUR;
   $("nav").innerHTML = MENU.map((m, i) => '<a data-g="' + i + '" class="' + (i === g ? "on" : "") + '">' + m.t + "</a>").join("");
-  const sub = g >= 0 && MENU[g].s.length > 1 ? MENU[g].s : [];
-  $("nav2").innerHTML = sub.map((x) => '<a data-t="' + x[0] + '" class="' + (x[0] === CUR ? "on" : "") + '">' + x[1] + "</a>").join("");
+  const sel = NAVSEL && CUR === "tbl_HopDong" ? NAVSEL : CUR, sub = g >= 0 && MENU[g].s.length > 1 ? MENU[g].s : [];
+  $("nav2").innerHTML = sub.map((x) => '<a data-t="' + x[0] + '" class="' + (x[0] === sel ? "on" : "") + '">' + x[1] + "</a>").join("");
   document.querySelectorAll("#nav a").forEach((a) => { Object(a).onclick = () => { const i = +Object(a).dataset.g; go(LASTSUB[i] || MENU[i].s[0][0]); }; });
   document.querySelectorAll("#nav2 a").forEach((a) => { Object(a).onclick = () => go(Object(a).dataset.t); });
   const on = Object(document.querySelector("#nav a.on")); if (on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   stickTabs();
 }
-function go(tn) { RET = null; RETS = []; let tvj = 0; if (tn === "tbl_HDThanhVien") { tvj = 1; tn = "tbl_HopDong"; MODE = "edit"; } CUR = tn; navDraw(); run(async () => { await build(tn); if (tvj) { TVJ = 1; msg("Thành viên LD: chọn hợp đồng liên danh cần nhập (ô cạnh nút Sửa) – form tự mở tab 👥 Thành viên LD", false); } }); }
+function go(tn) { RET = null; RETS = []; let tvj = 0; if (tn === "tbl_HDThanhVien") { tvj = 1; tn = "tbl_HopDong"; MODE = "edit"; } NAVSEL = tvj ? "tbl_HDThanhVien" : null; CUR = tn; navDraw(); run(async () => { await build(tn); if (tvj) { TVJ = 1; msg("Thành viên LD: chọn hợp đồng liên danh cần nhập (ô cạnh nút Sửa) – form tự mở tab 👥 Thành viên LD", false); } }); }
 function stickTabs() { const h = Object(document.querySelector(".top")); if (h.offsetHeight) $("tabs").style.top = h.offsetHeight + "px"; }
 function backBar() {
   const b = $("back"); if (!b.id) return; const on = !!(RET && RET.tn !== CUR);
