@@ -678,9 +678,9 @@ async function save() {
   await Excel.run(async (ctx) => {
     const t = ctx.workbook.tables.getItem(META.tn);
     let old = META.H.map(() => "");
-    if (!isNew) { const r0 = t.getDataBodyRange().getRow(META.editIndex); r0.load("values"); await ctx.sync(); old = r0.values[0]; }
+    if (!isNew) { const r0 = t.getDataBodyRange().getRow(META.editIndex); r0.load("values"); await ctx.sync(); old = r0.values[0]; } /* Đọc lại công thức hiện hành trên sheet ngay lúc lưu – không dùng bản lưu tạm khi mở form */ const bf = t.getDataBodyRange(); bf.load("formulas"); await ctx.sync(); const liveF = (fd) => { const R = bf.formulas, e = isNew ? -1 : META.editIndex; if (e >= 0 && R[e] && String(R[e][fd.i]).charAt(0) === "=") return R[e][fd.i]; const x = R.find((y) => String(y[fd.i]).charAt(0) === "="); return x ? x[fd.i] : fd.formula; };
     const out = META.fields.map((fd) => {
-      if (fd.formula) return fd.formula; if (fd.hidden) return old[fd.i];
+      if (fd.formula) { fd.formula = liveF(fd); return fd.formula; } if (fd.hidden) return old[fd.i];
       if (fd.name === "Ngày tạo") return isNew ? today() : old[fd.i];
       if (fd.name === "Người tạo") return isNew ? user : old[fd.i];
       if (fd.name === "Ngày sửa") return isNew ? "" : today();
