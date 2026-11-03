@@ -1615,7 +1615,7 @@ function renderPL() {
     xF("xDA", "Tên dự án", xS("xDA"), "full", 1) + xF("xHD", "Số hợp đồng", xS("xHD", "Chọn Tên dự án trước"), "full", 1)
       + '<div class="full edonly">' + xF("xPL", "Phụ lục cần sửa", xS("xPL", "Chọn Số hợp đồng trước"), "", 1) + "</div>"
       + xF("xSo", "Số phụ lục", '<input id="xSo" placeholder="VD: 01/2026/PLHĐ">', "", 1) + xF("xNgay", "Ngày ký", '<input id="xNgay" type="date">', "", 1),
-    '<div class="full note">Mỗi khối = 1 đầu mục điều chỉnh: chọn Loại điều chỉnh → Nhóm nội dung (Tạm ứng, Bảo hành, Bảo lãnh, Tài khoản…) → Loại con (VD loại bảo lãnh). Form liệt kê các trường như khi nhập hợp đồng, cột <b>Hiện hành</b> = giá trị theo PL gần nhất đã ký (nếu có) hoặc giá trị gốc của HĐ. Chỉ nhập ô cần thay đổi – mỗi ô thay đổi lưu thành 1 dòng PHULUC.</div><div class="full" id="plBox"></div>',
+    '<div class="full note">Mỗi khối = 1 loại điều chỉnh theo các mục của form Hợp đồng (Tài khoản, Tiến độ, Bảo hành, Giá trị hợp đồng, Tạm ứng &amp; thanh quyết toán, Bảo lãnh, Điều khoản khác). Chọn Loại điều chỉnh → khối đổi tên theo loại và hiện các trường bố trí như khi nhập hợp đồng (chia nhóm con giống form HĐ), cột <b>Hiện hành</b> = giá trị theo PL gần nhất đã ký (nếu có) hoặc giá trị gốc của HĐ. Chỉ nhập ô cần thay đổi – mỗi ô thay đổi lưu thành 1 dòng PHULUC.</div><div class="full" id="plBox"></div>',
     ""]);
   const D = XS.d.tbl_DuAn; xOpts("xDA", D.R.filter((r) => r[0] !== "").map((r) => [String(r[0]), String(xg(D, r, "Tên dự án"))]));
   $("xDA").addEventListener("change", () => { $("xHD").value = ""; plOpts(); plHead(); });
@@ -1631,10 +1631,10 @@ function plList(hd) { const T = XS.T, o = []; if (!hd) return o; T.R.forEach((r)
 function plMem(hd) { const V = XS.d.tbl_HDThanhVien; return hd ? V.R.filter((r) => r[0] !== "" && String(xg(V, r, "Mã hợp đồng")) === hd).map((r) => [String(r[0]), String(xg(V, r, "Tên nhà thầu")) + " (" + String(xg(V, r, "Vai trò")) + ")"]) : []; }
 function plDC() { const D = XS.d.tbl_TruongDC; return D.R.filter((r) => r[0] !== "").map((r) => { const g = (c) => { const x = xg(D, r, c); return x == null ? "" : String(x); }; return { ma: String(r[0]), nd: g("Nội dung điều chỉnh"), lo: g("Loại điều chỉnh"), nh: g("Nhóm nội dung") || "Khác", lc: g("Loại con"), kg: g("Kiểu giá trị"), cn: g("Cách nhập"), src: g("Nguồn danh sách"), dk: g("Điều kiện hiển thị"), cap: g("Cấp áp dụng"), cH: g("Cột tại HOPDONG"), cT: g("Cột tại HD_THANHVIEN"), tt: N0(xg(D, r, "Thứ tự")), on: g("Đang dùng") !== "Không" }; }).sort((a, b) => a.tt - b.tt); }
 const plUq = (a) => a.filter((x, i) => x && a.indexOf(x) === i);
-const plNh = (lo) => plUq(XS.dc.filter((x) => x.on && x.lo === lo).map((x) => x.nh));
-const plLc = (lo, nh) => plUq(XS.dc.filter((x) => x.on && x.lo === lo && x.nh === nh).map((x) => x.lc));
-const plFields = (b) => { const lc = plLc(b.lo, b.nh).length > 0; return XS.dc.filter((x) => x.lo === b.lo && x.nh === b.nh && (!lc || x.lc === b.lc) && x.kg !== "Tài khoản" && (x.on || b.f[x.ma])); };
-const plBlank = () => ({ lo: "", nh: "", lc: "", tv: "", dg: "", vat: "", f: Object.create(null), tk: [] });
+const PL_SEC = [["🏦", "Tài khoản", ["Tài khoản thụ hưởng"]], ["📅", "Tiến độ", ["Tiến độ"]], ["🛠", "Bảo hành", ["Bảo hành"]], ["💰", "Giá trị hợp đồng", ["Giá trị hợp đồng"]], ["💳", "Tạm ứng & thanh quyết toán", ["Tạm ứng", "Thanh toán", "Quyết toán"]], ["🛡", "Bảo lãnh", ["Bảo lãnh"]], ["📝", "Điều khoản khác", ["Khác"]]], PL_SUB = { "Tạm ứng": "💵 Tạm ứng", "Thanh toán": "🧾 Thanh toán", "Thanh toán đợt": "🧾 Thanh toán đợt", "Thanh toán vật tư": "🧱 Thanh toán vật tư", "Quyết toán": "📑 Quyết toán", "Bảo lãnh thực hiện hợp đồng": "📜 Bảo lãnh thực hiện hợp đồng", "Bảo lãnh tạm ứng": "💵 Bảo lãnh tạm ứng", "Bảo lãnh thanh toán": "💳 Bảo lãnh thanh toán" }; const plSec = (d) => { const s = PL_SEC.find((x) => x[2].indexOf(d.nh) >= 0); return s ? s[1] : "Điều khoản khác"; }; const plSecs = () => PL_SEC.filter((s) => XS.dc.some((x) => x.on && plSec(x) === s[1])); const plIc = (lo) => { const s = PL_SEC.find((x) => x[1] === lo); return s ? s[0] : "📎"; };
+const plSubOf = (d) => { if (d.lc) return d.lc; const s = PL_SEC.find((x) => x[1] === plSec(d)); return s && s[2].length > 1 ? d.nh : ""; };
+const plFields = (b) => XS.dc.filter((x) => plSec(x) === b.lo && x.kg !== "Tài khoản" && (x.on || b.f[x.ma]));
+const plBlank = () => ({ lo: "", tv: "", dg: "", vat: "", f: Object.create(null), tk: [] });
 const plNo = (ma, hd) => parseInt(String(ma).slice(hd.length + 3), 10) || 0;
 const plHas = (v) => v !== "" && v != null && !(typeof v === "number" && isNaN(v));
 function plReset() { XS.blocks = []; XS.pl = ""; XS.ma = ""; plOpts(); plHead(); }
@@ -1645,7 +1645,7 @@ function plLoad(ma) {
   $("xSo").value = r0 ? String(xg(T, r0, "Số phụ lục")) : ""; $("xNgay").value = r0 && typeof xg(T, r0, "Ngày ký") === "number" ? fromSerial(xg(T, r0, "Ngày ký")) : ""; $("xGC").value = r0 ? String(xg(T, r0, "Ghi chú")) : ""; $("xMa").value = XS.ma;
   XS.blocks = [];
   rows.forEach((r) => { const m = String(xg(T, r, "Mã nội dung điều chỉnh")), d = XS.dc.find((x) => x.ma === m) || { ma: m, lo: String(xg(T, r, "Loại điều chỉnh")), nh: "Khác", lc: "", kg: "" }, dg = String(xg(T, r, "Diễn giải")), tv = String(xg(T, r, "Mã thành viên"));
-    let b = XS.blocks.find((x) => x.lo === d.lo && x.nh === d.nh && x.lc === d.lc && x.dg === dg); if (!b) XS.blocks.push(b = Object.assign(plBlank(), { lo: d.lo, nh: d.nh, lc: d.lc, dg: dg }));
+    let b = XS.blocks.find((x) => x.lo === plSec(d) && x.dg === dg); if (!b) XS.blocks.push(b = Object.assign(plBlank(), { lo: plSec(d), dg: dg }));
     if (tv) b.tv = tv; const e = { v: xg(T, r, "Giá trị điều chỉnh"), stt: N0(xg(T, r, "STT")), ma: String(r[0]) };
     if (d.kg === "Tài khoản") b.tk.push(Object.assign(e, { m: m, v: String(e.v) })); else b.f[m] = e;
     const vt = xg(T, r, "Thuế suất VAT"); if (plHas(vt)) b.vat = vt; });
@@ -1668,7 +1668,7 @@ function plCur(d, hd, tv) {
   return plHas(tvv) ? { v: tvv, src: "HĐ gốc (thành viên)" } : { v: hv, src: "HĐ gốc" };
 }
 /* Điều kiện hiển thị: "A=x; B<>y" (và), "A=x | B=y" (hoặc); A = tên cột HOPDONG của trường khác – lấy giá trị mới đang nhập (nếu có) hoặc giá trị hiện hành */
-function plGet(b, hd, nw) { return (name) => { const d = XS.dc.find((x) => x.cH === name && x.lo === b.lo && x.nh === b.nh) || XS.dc.find((x) => x.cH === name && x.on); if (d) { if (nw) { const e = b.f[d.ma]; if (e && plHas(e.v)) return e.v; const o = XS.blocks.find((x) => x !== b && x.f[d.ma] && plHas(x.f[d.ma].v)); if (o) return o.f[d.ma].v; } return plCur(d, hd, b.tv).v; } const H = XS.d.tbl_HopDong, h = H.R.find((r) => String(r[0]) === hd); return h && H.ix(name) >= 0 ? h[H.ix(name)] : ""; }; }
+function plGet(b, hd, nw) { return (name) => { const d = XS.dc.find((x) => x.cH === name && plSec(x) === b.lo) || XS.dc.find((x) => x.cH === name && x.on); if (d) { if (nw) { const e = b.f[d.ma]; if (e && plHas(e.v)) return e.v; const o = XS.blocks.find((x) => x !== b && x.f[d.ma] && plHas(x.f[d.ma].v)); if (o) return o.f[d.ma].v; } return plCur(d, hd, b.tv).v; } const H = XS.d.tbl_HopDong, h = H.R.find((r) => String(r[0]) === hd); return h && H.ix(name) >= 0 ? h[H.ix(name)] : ""; }; }
 function plVis(dk, g) { if (!dk) return true; return String(dk).split(";").every((c) => String(c).split("|").some((t) => { const s = String(t).trim(); if (!s) return true; const ne = s.indexOf("<>") >= 0, p = s.split(ne ? "<>" : "="), x = g(String(p[0]).trim()), a = x == null ? "" : String(x), v = String(p[1] || "").trim(); return ne ? a !== v : a === v; })); }
 /* Tài khoản thụ hưởng: đơn vị nhận tiền theo HĐ, TK đã đăng ký, TK có thể bổ sung */
 function plTKUnits(hd) { const H = XS.d.tbl_HopDong, h = H.R.find((r) => String(r[0]) === hd), V = XS.d.tbl_HDThanhVien, M = V.R.filter((r) => r[0] !== "" && String(xg(V, r, "Mã hợp đồng")) === hd); if (!h) return []; if (!M.length) return [String(xg(H, h, "Mã nhà thầu"))]; const dir = String(xg(H, h, "Phương thức thanh toán (LD)")) === "Trực tiếp từng thành viên"; return M.filter((r) => dir || String(xg(V, r, "Vai trò")) === "Đứng đầu liên danh").map((r) => String(xg(V, r, "Mã nhà thầu"))); }
@@ -1695,32 +1695,32 @@ function plDraw() {
   const M = plMem(hd), L = XS.d.loai || [], opt = (list, v, ph) => '<option value="">' + ph + "</option>" + list.map((x) => '<option value="' + esc(x[0]) + '"' + (String(x[0]) === String(v) ? " selected" : "") + ">" + esc(x[1]) + "</option>").join("");
   box.innerHTML = XS.blocks.map((b, i) => {
     const at = (n, c) => ' class="plf" data-i="' + i + '" data-k="' + n + '"' + (c ? ' data-c="' + esc(c) + '"' : "");
-    const NH = b.lo ? plNh(b.lo) : [], LC = b.nh ? plLc(b.lo, b.nh) : [], F = b.nh && (!LC.length || b.lc) ? plFields(b) : [], tvOn = M.length > 0 && F.some((d) => /Thành viên/.test(d.cap));
-    let h = '<div style="border:1px solid #e3e6ea;border-left:3px solid ' + C.orange[0] + ';border-radius:6px;padding:8px 10px;margin:8px 0"><div class="subh" style="margin-top:0;display:flex;justify-content:space-between">📎 Khối ' + (i + 1) + (b.nh ? " · " + esc(b.nh) + (b.lc ? " › " + esc(b.lc) : "") : "") + '<button type="button" class="gtx" data-pdel="' + i + '" title="Xoá khối">✕</button></div><div class="grid">';
-    h += '<div><label>Loại điều chỉnh <span class="req">*</span></label><select' + at("lo") + ">" + opt(L.map((x) => [x, x]), b.lo, "— Chọn —") + "</select></div>";
-    h += '<div><label>Nhóm nội dung <span class="req">*</span></label><select' + at("nh") + ">" + opt(NH.map((x) => [x, x]), b.nh, b.lo ? "— Chọn —" : "Chọn Loại trước") + "</select></div>";
-    if (LC.length) h += '<div class="full"><label>' + (b.nh === "Bảo lãnh" ? "Loại bảo lãnh" : "Loại") + ' <span class="req">*</span></label><select' + at("lc") + ">" + opt(LC.map((x) => [x, x]), b.lc, "— Chọn —") + "</select></div>";
+    const S = plSecs(), F = b.lo ? plFields(b) : [], tvOn = M.length > 0 && F.some((d) => /Thành viên/.test(d.cap));
+    let h = '<div style="border:1px solid #e3e6ea;border-left:3px solid ' + C.orange[0] + ';border-radius:6px;padding:8px 10px;margin:8px 0"><div class="subh" style="margin-top:0;display:flex;justify-content:space-between">' + (b.lo ? plIc(b.lo) + " " + esc(b.lo) : "📎 Khối " + (i + 1)) + '<button type="button" class="gtx" data-pdel="' + i + '" title="Xoá khối">✕</button></div><div class="grid">';
+    h += '<div class="full"><label>Loại điều chỉnh <span class="req">*</span></label><select' + at("lo") + ">" + opt(S.map((x) => [x[1], x[0] + " " + x[1]]), b.lo, "— Chọn —") + "</select></div>";
+    if (b.lo && XS.blocks.some((x, j) => j !== i && x.lo === b.lo)) h += '<div class="full hint">⚠ Loại điều chỉnh này đã có ở khối khác – nên gộp vào 1 khối</div>';
+    /* Nhóm nội dung / Loại con không cần chọn – hiển thị thành tiêu đề nhóm con trong khối như form Hợp đồng */
     if (tvOn) h += '<div class="full"><label>Áp dụng cho</label><select' + at("tv") + ">" + opt(M, b.tv, "— Toàn hợp đồng —") + "</select></div>";
     h += "</div>";
-    if (b.nh === PL_TK) h += plTKHtml(b, i, hd);
+    if (b.lo === "Tài khoản") h += plTKHtml(b, i, hd);
     else if (F.length) {
       const gN = plGet(b, hd, true);
-      h += '<table class="gtg" style="margin-top:6px"><tr><th style="text-align:left">Nội dung</th><th style="width:30%;text-align:left">Hiện hành <span class="fx">ƒx</span></th><th style="width:34%;text-align:left">Điều chỉnh</th></tr>';
+      h += '<div class="grid" style="margin-top:6px">'; let sb = "";
       F.forEach((d) => {
-        if (!plVis(d.dk, gN)) { if (b.f[d.ma]) b.f[d.ma].v = ""; return; }
+        const sub = plSubOf(d); if (sub !== sb) { sb = sub; if (sub) h += '<div class="full subh">' + esc(PL_SUB[sub] || sub) + "</div>"; } if (!plVis(d.dk, gN)) { if (b.f[d.ma]) b.f[d.ma].v = ""; return; }
         const c = plCur(d, hd, b.tv), e = b.f[d.ma] || { v: "" }, k = plKind(d.kg), sv = esc(plShow(e.v, d.kg));
         const ph = d.cn === "Tăng/giảm" ? "Tăng (+) / giảm (−)" : d.cn === "Mô tả" ? "Mô tả nội dung" : "Giá trị mới";
         const vin = k === "list" ? "<select" + at("v", d.ma) + ">" + opt(plSrc(d).map((x) => [x, x]), e.v, "— Giữ nguyên —") + "</select>"
           : k === "date" ? '<input type="date"' + at("v", d.ma) + ' value="' + sv + '">'
           : k === "pct" ? '<div class="unit"><input type="number" step="0.01"' + at("v", d.ma) + ' class="num" value="' + sv + '" placeholder="' + ph + '"><span>%</span></div>'
           : "<input" + at("v", d.ma) + (k === "money" || k === "num" ? ' inputmode="decimal"' : "") + ' value="' + sv + '" placeholder="' + ph + '">';
-        h += "<tr><td>" + esc(d.nd) + (d.cap === "Hợp đồng" && b.tv ? ' <span class="hint">(áp dụng cả HĐ)</span>' : "") + (!d.on ? ' <span class="hint">(ngừng dùng)</span>' : "") + "</td><td>" + esc(plTxt(c.v, d.kg)) + (c.src ? '<div class="hint" style="margin:0">' + esc(c.src) + "</div>" : "") + "</td><td>" + vin
-          + (d.cn === "Tăng/giảm" ? '<div class="hint" style="margin:0" id="plAf' + i + "_" + esc(d.ma) + '">' + (plHas(e.v) ? "Sau điều chỉnh: " + fmt(N0(c.v) + N0(e.v)) : "") + "</div>" : "") + "</td></tr>";
+        h += "<div" + (d.cn === "Mô tả" ? ' class="full"' : "") + "><label>" + esc(d.nd) + (d.cap === "Hợp đồng" && b.tv ? ' <span class="hint">(áp dụng cả HĐ)</span>' : "") + (!d.on ? ' <span class="hint">(ngừng dùng)</span>' : "") + "</label>" + vin + '<div class="hint" style="margin:0">Hiện hành: ' + esc(plTxt(c.v, d.kg)) + (c.src ? " · " + esc(c.src) : "") + "</div>"
+          + (d.cn === "Tăng/giảm" ? '<div class="hint" style="margin:0" id="plAf' + i + "_" + esc(d.ma) + '">' + (plHas(e.v) ? "Sau điều chỉnh: " + fmt(N0(c.v) + N0(e.v)) : "") + "</div>" : "") + "</div>";
       });
-      h += "</table>";
+      h += "</div>";
       if (F.some((d) => d.cn === "Tăng/giảm")) h += '<div class="grid"><div><label>Thuế suất VAT <span class="req">*</span></label><select' + at("vat") + ">" + opt(XS.d.vat.map((v) => [String(v), pTxt(v)]), plHas(b.vat) ? String(b.vat) : "", "— Chọn —") + "</select></div></div>";
     }
-    if (b.nh) h += '<div class="grid"><div class="full"><label>Diễn giải <span class="req">*</span></label><input' + at("dg") + ' value="' + esc(b.dg) + '" placeholder="VD: Gia hạn bảo lãnh theo tiến độ mới…"></div></div>';
+    if (b.lo) h += '<div class="grid"><div class="full"><label>Diễn giải <span class="req">*</span></label><input' + at("dg") + ' value="' + esc(b.dg) + '" placeholder="VD: Gia hạn bảo lãnh theo tiến độ mới…"></div></div>';
     return h + "</div>";
   }).join("") + '<div class="gtf"><button type="button" class="btn gh" id="plAdd">＋ Thêm khối điều chỉnh</button></div>';
   box.querySelectorAll(".plf").forEach((e0) => { const e = Object(e0), b = XS.blocks[+e.dataset.i], k = e.dataset.k, c = e.dataset.c;
@@ -1728,7 +1728,7 @@ function plDraw() {
       if (k === "v") { const d = XS.dc.find((x) => x.ma === c), t = plKind(d ? d.kg : ""), v = s === "" ? "" : t === "money" || t === "num" ? parseNum(s) : t === "pct" ? Number(s.replace(",", ".")) / 100 : t === "date" ? toSerial(s) : s; b.f[c] = Object.assign(b.f[c] || {}, { v: v });
         const af = $("plAf" + e.dataset.i + "_" + c); if (af.id && d) af.textContent = plHas(v) ? "Sau điều chỉnh: " + fmt(N0(plCur(d, hd, b.tv).v) + N0(v)) : ""; }
       else if (k === "vat") b.vat = s === "" ? "" : Number(s); else b[k] = s; };
-    if (e.tagName === "SELECT") e.addEventListener("change", () => { up(); if (k === "lo") { b.nh = ""; b.lc = ""; b.f = Object.create(null); b.tk = []; } if (k === "nh") { b.lc = ""; b.f = Object.create(null); b.tk = []; if (!plHas(b.vat)) { const V = XS.d.tbl_HDHienHanh, x = V.R.find((r) => String(r[0]) === hd); if (x) b.vat = xg(V, x, "Thuế suất VAT"); } } if (k === "lc") b.f = Object.create(null); if (k !== "vat") plDraw(); xRefresh(); });
+    if (e.tagName === "SELECT") e.addEventListener("change", () => { up(); if (k === "lo") { b.f = Object.create(null); b.tk = []; if (!plHas(b.vat)) { const V = XS.d.tbl_HDHienHanh, x = V.R.find((r) => String(r[0]) === hd); if (x) b.vat = xg(V, x, "Thuế suất VAT"); } } if (k !== "vat") plDraw(); xRefresh(); });
     else { e.addEventListener("input", up); if (k === "v" && e.inputMode === "decimal") e.addEventListener("blur", () => { const x = (b.f[c] || {}).v; if (typeof x === "number") e.value = fmt(x); }); } });
   box.querySelectorAll(".pltk").forEach((e0) => { const e = Object(e0); e.onchange = () => { const b = XS.blocks[+e.dataset.i], tk = e.dataset.tk; b.tk = b.tk.filter((x) => !(x.m === "DK-43" && String(x.v) === tk)); if (e.checked) b.tk.push({ m: "DK-43", v: tk, stt: 0 }); plDraw(); xRefresh(); }; });
   box.querySelectorAll(".pltkadd").forEach((e0) => { const e = Object(e0); e.onchange = () => { if (!e.value) return; XS.blocks[+e.dataset.i].tk.push({ m: "DK-42", v: e.value, stt: 0 }); plDraw(); xRefresh(); }; });
@@ -1743,8 +1743,8 @@ function plCalc() {
   const why = !$("xDA").value ? "Chọn Tên dự án và Số hợp đồng để mở" : !hd ? "Chọn Số hợp đồng để mở" : ed && !XS.pl ? "Chọn Phụ lục cần sửa để mở" : "";
   xLock(["xSo", "xNgay"], !!why); xLockMsg(["s2"], why);
   const sH = $("xSoH"); if (sH.id) { const n = plList(hd).length; sH.textContent = hd && !ed ? (n ? "HĐ đã có " + n + " phụ lục" : "Phụ lục đầu tiên của hợp đồng") : ""; }
-  const ok = XS.blocks.length > 0 && XS.blocks.every((b) => b.lo && b.nh && String(b.dg).trim());
-  xSum([["Số hợp đồng", h ? String(xg(H, h, "Số hợp đồng")) : ""], ["Số phụ lục", $("xSo").value], ["Ngày ký", $("xNgay").value ? dmy(toSerial($("xNgay").value)) : ""], ["Khối điều chỉnh", hd ? XS.blocks.map((b) => b.nh || "?").join(", ") : ""], ["Mã phụ lục", XS.ma || (hd && !ed ? plNext(hd) + " (dự kiến)" : "")]],
+  const ok = XS.blocks.length > 0 && XS.blocks.every((b) => b.lo && String(b.dg).trim());
+  xSum([["Số hợp đồng", h ? String(xg(H, h, "Số hợp đồng")) : ""], ["Số phụ lục", $("xSo").value], ["Ngày ký", $("xNgay").value ? dmy(toSerial($("xNgay").value)) : ""], ["Khối điều chỉnh", hd ? XS.blocks.map((b) => b.lo || "?").join(", ") : ""], ["Mã phụ lục", XS.ma || (hd && !ed ? plNext(hd) + " (dự kiến)" : "")]],
     [!!(hd && $("xSo").value && $("xNgay").value), ok, !!String($("user").value || "").trim()],
     ($("xSo").value || "Phụ lục mới") + (h ? " · " + String(xg(H, h, "Số hợp đồng")) : ""), ed ? "đang sửa" : "thêm mới");
 }
@@ -1752,20 +1752,20 @@ function plNext(hd) { let mx = 0; XS.T.R.forEach((r) => { const s = String(xg(XS
 /* Gom các ô đã thay đổi thành dòng PHULUC; báo thiếu khi đổi cách xác định làm phát sinh trường mới chưa có giá trị */
 function plLines(hd) {
   const L = [], B = XS.blocks; if (!B.length) return "Thêm ít nhất 1 khối điều chỉnh";
-  for (let i = 0; i < B.length; i++) { const b = B[i], n = "Khối " + (i + 1) + ": ";
-    if (!b.lo || !b.nh) return n + "chọn Loại điều chỉnh và Nhóm nội dung";
-    if (plLc(b.lo, b.nh).length && !b.lc) return n + "chọn " + (b.nh === "Bảo lãnh" ? "Loại bảo lãnh" : "Loại");
+  for (let i = 0; i < B.length; i++) { const b = B[i], n = "Khối " + (i + 1) + (b.lo ? " (" + b.lo + ")" : "") + ": ";
+    if (!b.lo) return n + "chọn Loại điều chỉnh";
+    /* Nhóm con (Tạm ứng, Thanh toán đợt, Bảo lãnh tạm ứng…) hiển thị sẵn trong khối – không cần chọn Loại con */
     if (!String(b.dg).trim()) return n + "nhập Diễn giải";
-    if (b.nh === PL_TK) { if (!b.tk.length) return n + "tick TK cần ngừng hoặc chọn TK bổ sung"; b.tk.forEach((x) => L.push({ b: b, m: x.m, tv: "", v: String(x.v), vat: "", e: x, kg: "Tài khoản" })); continue; }
+    if (b.lo === "Tài khoản") { if (!b.tk.length) return n + "tick TK cần ngừng hoặc chọn TK bổ sung"; b.tk.forEach((x) => L.push({ b: b, lo: (XS.dc.find((d) => d.ma === x.m) || {}).lo || "", m: x.m, tv: "", v: String(x.v), vat: "", e: x, kg: "Tài khoản" })); continue; }
     const F = plFields(b), gN = plGet(b, hd, true), gO = plGet(b, hd, false); let cnt = 0;
     for (const d of F) { if (!plVis(d.dk, gN)) continue; const e = b.f[d.ma] || (b.f[d.ma] = { v: "" }), c = plCur(d, hd, b.tv), has = plHas(e.v);
-      if (d.cn === "Mô tả") { L.push({ b: b, m: d.ma, tv: d.cap === "Hợp đồng" ? "" : b.tv, v: has ? e.v : "", vat: "", e: e, kg: d.kg }); cnt++; continue; }
+      if (d.cn === "Mô tả") { L.push({ b: b, lo: d.lo, m: d.ma, tv: d.cap === "Hợp đồng" ? "" : b.tv, v: has ? e.v : "", vat: "", e: e, kg: d.kg }); cnt++; continue; }
       if (!has) { if (!plVis(d.dk, gO) && !plHas(c.v)) return n + "nhập " + d.nd + " (phát sinh do thay đổi điều kiện)"; continue; }
       if (d.cn === "Giá trị mới" && String(e.v) === String(c.v)) continue;
       if (d.cn === "Tăng/giảm" && N0(e.v) === 0) continue;
       if (d.kg === "Tỷ lệ" && (Number(e.v) < 0 || Number(e.v) > 1)) return n + d.nd + " phải từ 0% đến 100%";
       if (d.cn === "Tăng/giảm" && !plHas(b.vat)) return n + "chọn Thuế suất VAT";
-      cnt++; L.push({ b: b, m: d.ma, tv: d.cap === "Hợp đồng" ? "" : (b.tv || ""), v: e.v, vat: d.cn === "Tăng/giảm" ? Number(b.vat) || 0 : "", e: e, kg: d.kg }); }
+      cnt++; L.push({ b: b, lo: d.lo, m: d.ma, tv: d.cap === "Hợp đồng" ? "" : (b.tv || ""), v: e.v, vat: d.cn === "Tăng/giảm" ? Number(b.vat) || 0 : "", e: e, kg: d.kg }); }
     if (!cnt) return n + "chưa có giá trị nào khác giá trị hiện hành"; }
   const dup = L.find((l, k) => L.some((x, j) => j < k && x.m === l.m && x.tv === l.tv && (l.kg !== "Tài khoản" || x.v === l.v))); if (dup) return "Nội dung " + dup.m + " bị nhập ở 2 khối – gộp lại 1 khối";
   return L;
@@ -1790,7 +1790,7 @@ async function savePL() {
   if (rm.length) await Excel.run(async (ctx) => { const t = ctx.workbook.tables.getItem(PL_TN), b = t.getDataBodyRange(); b.load("values,rowCount"); await ctx.sync(); const ks = []; b.values.forEach((r, k) => { if (rm.indexOf(String(r[0])) >= 0) ks.push(k); }); let n = b.rowCount; for (const k of ks.reverse()) { await delRow(ctx, t, k, n); n--; } });
   const gc = String($("xGC").value || "").trim();
   for (let i = 0; i < L.length; i++) { const l = L[i];
-    await xWrite(PL_TN, keep[i], { "Mã phụ lục": ma, "STT": l.e.stt, "Số phụ lục": so, "Ngày ký": toSerial($("xNgay").value), "Mã hợp đồng": hd, "Mã thành viên": l.tv || "", "Loại điều chỉnh": l.b.lo, "Mã nội dung điều chỉnh": l.m, "Giá trị điều chỉnh": typeof l.v === "string" && /^[=+\-@]/.test(l.v) ? "'" + l.v : l.v, "Thuế suất VAT": l.vat, "Diễn giải": String(l.b.dg).trim(), "Ghi chú": gc }, user, { sort: i === L.length - 1 ? 1 : 0 }); }
+    await xWrite(PL_TN, keep[i], { "Mã phụ lục": ma, "STT": l.e.stt, "Số phụ lục": so, "Ngày ký": toSerial($("xNgay").value), "Mã hợp đồng": hd, "Mã thành viên": l.tv || "", "Loại điều chỉnh": l.lo || l.b.lo, "Mã nội dung điều chỉnh": l.m, "Giá trị điều chỉnh": typeof l.v === "string" && /^[=+\-@]/.test(l.v) ? "'" + l.v : l.v, "Thuế suất VAT": l.vat, "Diễn giải": String(l.b.dg).trim(), "Ghi chú": gc }, user, { sort: i === L.length - 1 ? 1 : 0 }); }
   if (L.some((l) => l.kg === "Tài khoản") || old.length) await plTKSync(ma, hd, L, key, user);
   const da = $("xDA").value; await buildPL(); xMode("edit"); $("xDA").value = da; plOpts(); $("xHD").value = hd; plOpts(); $("xPL").value = ma; cbSyncAll(); plLoad(ma);
   const bad = XS.T.R.filter((r) => String(xg(XS.T, r, "Mã phụ lục")) === ma).map((r) => String(xg(XS.T, r, "Kiểm tra"))).filter((k) => k && k !== "OK");
