@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QLCP ĐTXD – Nhập liệu & Đồng bộ Supabase</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font:13px "Segoe UI",Arial,sans-serif;color:#1f2937;background:#f3f6fa}
+header{background:#1f4e79;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+header b{font-size:15px}header .sp{flex:1}header button{background:#2e75b6;color:#fff;border:0;padding:5px 10px;border-radius:4px;cursor:pointer}
+header button.on{background:#fff;color:#1f4e79;font-weight:600}
+main{display:flex;min-height:calc(100vh - 46px)}nav{width:200px;flex:none;background:#fff;border-right:1px solid #d9e1ea;overflow:auto}
+nav:empty{display:none}nav .m{padding:8px 10px;font-weight:600;background:#eef3f8;border-top:1px solid #d9e1ea}
+nav .s{padding:6px 18px;cursor:pointer}nav .s:hover,nav .s.on{background:#dbe8f5}
+#view{flex:1;padding:12px;overflow:auto;min-width:0}
+.card{background:#fff;border:1px solid #d9e1ea;border-radius:6px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+button.b{background:#2e75b6;color:#fff;border:0;padding:6px 12px;border-radius:4px;cursor:pointer}button.b:disabled{opacity:.5}
+button.b2{background:#fff;color:#2e75b6;border:1px solid #2e75b6;padding:5px 11px;border-radius:4px;cursor:pointer}button.del{background:#c0392b}
+input,select,textarea{font:inherit;padding:5px 6px;border:1px solid #b8c4d0;border-radius:4px;width:100%;background:#fff}
+input[readonly],select:disabled{background:#eef1f4;color:#555}
+table.g{border-collapse:collapse;width:100%;background:#fff}
+table.g th{background:#1f4e79;color:#fff;position:sticky;top:0;padding:5px;text-align:left;font-weight:600;white-space:nowrap}
+table.g td{border-bottom:1px solid #e5e9ef;padding:4px 5px;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+table.g tr:hover td{background:#f0f6fc;cursor:pointer}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}.tabs span{padding:5px 10px;border:1px solid #b8c4d0;border-radius:14px;cursor:pointer;background:#fff}
+.tabs span.on{background:#1f4e79;color:#fff;border-color:#1f4e79}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 12px}.grid .full{grid-column:1/-1}
+label{font-size:12px;color:#475569;display:block;margin-bottom:2px}label i{color:#c0392b;font-style:normal}
+.ok{color:#1e7b34;font-weight:600}.warn{color:#c0392b;font-weight:600}.muted{color:#6b7280;font-size:12px}.hint{font-size:11px;color:#6b7280}
+#msg{position:fixed;right:12px;bottom:12px;max-width:440px;padding:10px 14px;border-radius:6px;color:#fff;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header><b>QLCP ĐTXD</b><span id="modeTag" style="color:#cfe0f1"></span><span class="sp"></span><span id="tabs"></span>
+<span id="who" style="color:#cfe0f1"></span><button id="btnOut" style="display:none">Đăng xuất</button></header>
+<main><nav id="nav"></nav><div id="view"><div class="card muted">Đang khởi động…</div></div></main>
+<div id="msg"></div>
+<script>
+// Một mã nguồn dùng chung: mở trong Excel (add-in) có thêm tab Đồng bộ; mở bằng trình duyệt để nhập liệu web.
+// ===== CẤU HÌNH (tự lấy từ ô B4:B5 sheet WEB_APP) =====
+const SUPABASE_URL = "https://fclflrwgnmoxxqqouqbt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjbGZscndnbm1veHhxcW91cWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3MTkzNzcsImV4cCI6MjEwOTI5NTM3N30.UwFC7T7MWpdmMHQDdMusIqUbxXin6KrUePu3mTEu-iE";
+const TZ = 7;   // múi giờ Việt Nam (UTC+7)
+// Cấu trúc menu / form sinh từ sheet CAUTRUC_GIAODIEN + DATA_DICTIONARY
+const UI = JSON.parse([
+  "{\"menu\":[{\"m\":\"🏢 Dự án\",\"s\":[{\"t\":\"Thông tin\",\"tb\":\"du_an\",\"tit\":\"🏢 Dự án\",\"q\":1,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"🏢\",\"f\":[[\"ten_du_an\",\"Tên dự án\",\"text\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"ma_cdt\",\"Chủ đầu tư\",\"lk:cong_ty:ma_cong_ty:ten_cong_ty\",1,1,\"\"],[\"loai_hinh_du_an\",\"Loại hình dự án\",\"ls:lst_LoaiHinhDA\",0,0,\"\"],[\"nhom_du_an\",\"Nhóm dự án\",\"ls:lst_NhomDA\",0,0,\"\"],[\"cap_cong_trinh\",\"Cấp công trình\",\"ls:lst_CapCT\",0,0,\"\"]]},{\"n\":\"Địa điểm & quy mô\",\"ic\":\"📍\",\"f\":[[\"tinh_thanh\",\"Tỉnh/Thành\",\"ls:lst_TinhThanh\",0,0,\"\"],[\"dia_diem_xa_phuong\",\"Địa điểm (xã/phường)\",\"text\",0,0,\"\"],[\"dien_tich_dat_m\",\"Diện tích đất (m²)\",\"money\",0,0,\"ĐV: m²\"],[\"tong_dt_san_xd_m\",\"Tổng DT sàn XD (m²)\",\"money\",0,0,\"ĐV: m²\"],[\"quy_mo_cong_suat\",\"Quy mô / Công suất\",\"text\",0,1,\"VD: 35 tầng nổi + 4 tầng hầm\"]]},{\"n\":\"Pháp lý – chủ trương\",\"ic\":\"📜\",\"f\":[[\"so_qd_chap_thuan_chu_truong\",\"Số QĐ chấp thuận chủ trương\",\"text\",0,0,\"VD: 123/QĐ-UBND\"],[\"ngay_qd_chu_truong\",\"Ngày QĐ chủ trương\",\"date\",0,0,\"\"]]},{\"n\":\"Tiến độ & trạng thái\",\"ic\":\"📅\",\"f\":[[\"ngay_khoi_cong_kh\",\"Ngày khởi công (KH)\",\"date\",0,0,\"\"],[\"ngay_hoan_thanh_kh\",\"Ngày hoàn thành (KH)\",\"date\",0,0,\"\"],[\"thoi_gian_thuc_hien_thang\",\"Thời gian thực hiện (tháng)\",\"ro\",0,0,\"ĐV: tháng\"],[\"giai_doan\",\"Giai đoạn\",\"ls:lst_GiaiDoanDA\",0,0,\"\"],[\"trang_thai\",\"Trạng thái\",\"ls:lst_TrangThaiDA\",0,0,\"\"]]},{\"n\":\"Tổng mức đầu tư\",\"ic\":\"💰\",\"f\":[[\"tmdt_phe_duyet_vnd\",\"TMĐT phê duyệt (VNĐ)\",\"ro\",0,0,\"\"],[\"tmdt_hien_hanh_vnd\",\"TMĐT hiện hành (VNĐ)\",\"ro\",0",
+  ",0,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_du_an\",\"Mã dự án\",\"text\",1,0,\"\"],[\"ten_chu_dau_tu\",\"Tên chủ đầu tư\",\"ro\",0,0,\"\"]]}]},{\"t\":\"QĐ TMĐT\",\"tb\":\"tmdt\",\"tit\":\"💰 QĐ TMĐT\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"ma_du_an\",\"Tên dự án\",\"lk:du_an:ma_du_an:ten_du_an\",1,0,\"\"],[\"loai_phe_duyet\",\"Loại phê duyệt\",\"ls:lst_LoaiPheDuyet\",1,0,\"\"],[\"lan_dieu_chinh\",\"Lần điều chỉnh\",\"text\",1,0,\"\"],[\"so_quyet_dinh\",\"Số quyết định\",\"text\",0,0,\"\"],[\"noi_dung_ly_do\",\"Nội dung / Lý do\",\"text\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_quyet_dinh\",\"Ngày quyết định\",\"date\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"gia_tri_truoc_thue_vnd\",\"Giá trị trước thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"thue_gtgt_vnd\",\"Thuế GTGT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_sau_thue_vnd\",\"Giá trị sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"tang_giam_so_lan_truoc_vnd\",\"Tăng/giảm so lần trước (VNĐ)\",\"ro\",0,0,\"\"],[\"hieu_luc\",\"Hiệu lực\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_qd_tmdt\",\"Mã QĐ TMĐT\",\"ro\",1,0,\"\"],[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"ma_cdt\",\"Mã CĐT\",\"ro\",0,1,\"\"],[\"cap_phe_duyet\",\"Cấp phê duyệt\",\"text\",0,0,\"\"]]}]},{\"t\":\"TMĐT chi tiết\",\"tb\":\"tmdt_ct\",\"tit\":\"💵 TMĐT chi tiết\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin\",\"ic\":\"📝\",\"f\":[]},{\"n\":\"Chi phí\",\"ic\":\"💰\",\"f\":[[\"\",\"Lưới chi ",
+  "phí: Mã chi phí, Tên khoản mục, Giá trị trước thuế, Thuế suất VAT, Thuế GTGT, Giá trị sau thuế\",\"grid\",0,1,\"\"]]},{\"n\":\"Lưu vết\",\"ic\":\"🕒\",\"f\":[]}]}]},{\"m\":\"📐 Dự toán\",\"s\":[{\"t\":\"Thông tin\",\"tb\":\"du_toan\",\"tit\":\"📐 Dự toán\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"ma_du_an\",\"Tên dự án\",\"lk:du_an:ma_du_an:ten_du_an\",1,0,\"\"],[\"ten_du_toan_hang_muc\",\"Tên dự toán / hạng mục\",\"text\",1,1,\"\"],[\"lan_dieu_chinh\",\"Lần điều chỉnh\",\"text\",1,0,\"\"],[\"so_quyet_dinh\",\"Số quyết định\",\"text\",0,0,\"\"],[\"noi_dung_ly_do\",\"Nội dung / Lý do\",\"text\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_quyet_dinh\",\"Ngày quyết định\",\"date\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"gia_tri_truoc_thue_vnd\",\"Giá trị trước thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"thue_gtgt_vnd\",\"Thuế GTGT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_sau_thue_vnd\",\"Giá trị sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"hieu_luc\",\"Hiệu lực\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_phien_ban_dt\",\"Mã phiên bản DT\",\"ro\",1,0,\"\"],[\"ma_du_toan\",\"Mã dự toán\",\"text\",0,0,\"\"],[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"cap_phe_duyet\",\"Cấp phê duyệt\",\"text\",0,0,\"\"]]}]},{\"t\":\"Dự toán chi tiết\",\"tb\":\"du_toan_ct\",\"tit\":\"📏 Dự toán chi tiết\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin\",\"ic\":\"📝\",\"f\":[]},{\"n\":\"Chi phí\",\"ic\":\"💰\",\"f\":[[\"\",\"Lưới chi phí: Mã chi phí, Tên khoản mục, Giá trị trước thuế, Thuế suất VAT, Thuế GTGT, Giá ",
+  "trị sau thuế\",\"grid\",0,1,\"\"]]},{\"n\":\"Lưu vết\",\"ic\":\"🕒\",\"f\":[]}]}]},{\"m\":\"📦 Gói thầu\",\"s\":[{\"t\":\"Gói thầu\",\"tb\":\"goi_thau\",\"tit\":\"📦 Gói thầu\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"ma_du_an\",\"Tên dự án\",\"lk:du_an:ma_du_an:ten_du_an\",1,0,\"\"],[\"ten_goi_thau\",\"Tên gói thầu\",\"text\",1,1,\"VD: Thi công phần ngầm – Khu đô thị ABC\"],[\"hinh_thuc_lcnt\",\"Hình thức LCNT\",\"ls:lst_HinhThucLCNT\",1,0,\"\"],[\"loai_hop_dong\",\"Loại hợp đồng\",\"ls:lst_LoaiHD\",1,0,\"\"],[\"so_qd_kqlcnt\",\"Số QĐ KQLCNT\",\"text\",0,0,\"VD: 100/QĐ-KQLCNT\"],[\"hinh_thuc_nha_thau\",\"Hình thức nhà thầu\",\"ls:lst_HinhThucNT\",0,0,\"\"],[\"ma_don_vi_trung_thau\",\"Mã đơn vị trúng thầu\",\"ls:lst_MaDonViTT\",0,0,\"\"],[\"trang_thai\",\"Trạng thái\",\"ro\",0,0,\"\"]]},{\"n\":\"Phạm vi dự toán\",\"ic\":\"📐\",\"f\":[[\"\",\"Phạm vi dự toán\",\"grid\",0,1,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_duyet_khlcnt\",\"Ngày duyệt KHLCNT\",\"date\",0,0,\"\"],[\"ngay_qd_kqlcnt\",\"Ngày QĐ KQLCNT\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị\",\"ic\":\"💰\",\"f\":[[\"gia_goi_thau_truoc_thue_vnd\",\"Giá gói thầu trước thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_trung_thau_truoc_thue_vnd\",\"Giá trúng thầu trước thuế (VNĐ)\",\"money\",0,0,\"\"],[\"gia_thuc\",\"Giá thực\",\"ls:lst_CoKhong\",0,0,\"\"],[\"ty_le_phi\",\"Tỷ lệ phí\",\"pct\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"gia_tri_du_toan_hieu_luc_truoc_thue_vnd\",\"Giá trị dự toán hiệu lực trước thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"dieu_chuyen_phan_bo_vnd\",\"Điều chuyển phân bổ (VNĐ)\",\"ro\",0,0,\"Tổng dòng Điều chuyển đi (âm)\"],[\"phan_bo_hien_hanh_vnd\",\"Phân bổ hiện hành (VNĐ)\",\"r",
+  "o\",0,0,\"= Giá gói thầu + Điều chuyển\"],[\"gia_tri_tiet_kiem_vnd\",\"Giá trị tiết kiệm (VNĐ)\",\"ro\",0,0,\"\"],[\"ty_le_tiet_kiem\",\"Tỷ lệ tiết kiệm\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_goi_thau\",\"Mã gói thầu\",\"text\",1,0,\"\"],[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"ma_du_toan\",\"Mã dự toán\",\"ro\",0,0,\"\"],[\"ma_chi_phi\",\"Mã chi phí\",\"ro\",0,0,\"\"],[\"ten_khoan_muc\",\"Tên khoản mục\",\"ro\",0,0,\"\"],[\"ma_nha_thau_trung_thau\",\"Mã nhà thầu trúng thầu\",\"ro\",0,0,\"\"],[\"ten_don_vi_trung_thau\",\"Tên đơn vị trúng thầu\",\"ro\",0,0,\"\"]]}]}]},{\"m\":\"📑 Hợp đồng\",\"s\":[{\"t\":\"Thông tin\",\"tb\":\"hop_dong\",\"tit\":\"📑 Hợp đồng\",\"q\":1,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"ma_du_an\",\"Tên dự án\",\"lk:du_an:ma_du_an:ten_du_an\",1,0,\"\"],[\"so_hop_dong\",\"Số hợp đồng\",\"text\",1,0,\"VD: 01/2026/HĐXD\"],[\"ma_goi_thau\",\"Tên gói thầu\",\"lk:goi_thau:ma_goi_thau:ten_goi_thau\",1,0,\"\"],[\"hinh_thuc_nha_thau\",\"Hình thức nhà thầu\",\"ls:lst_HinhThucNT\",0,0,\"\"],[\"ten_nha_thau\",\"Tên nhà thầu\",\"ro\",1,1,\"\"],[\"ngay_ky\",\"Ngày ký\",\"date\",0,0,\"\"],[\"trang_thai_hd\",\"Trạng thái HĐ\",\"ro\",0,0,\"\"],[\"noi_dung_hop_dong\",\"Nội dung hợp đồng\",\"text\",0,1,\"\"]]},{\"n\":\"Giá trị hợp đồng\",\"ic\":\"💰\",\"f\":[[\"mo_hinh_quan_ly_lien_danh\",\"Mô hình quản lý liên danh\",\"ls:lst_MoHinhLD\",1,0,\"\"],[\"nhieu_thue_vat\",\"Nhiều loại thuế VAT\",\"text\",1,0,\"\"],[\"thue_suat_vat\",\"Thuế suất VAT\",\"ls:lst_VAT\",0,0,\"\"],[\"gia_tri_ph",
+  "ap_ly_truoc_thue_vnd\",\"Giá trị trước thuế (VNĐ)\",\"money\",0,0,\"\"],[\"gia_tri_net_truoc_thue_vnd\",\"Giá trị trước thuế (VNĐ)\",\"money\",1,0,\"\"],[\"ty_le_phi\",\"Tỷ lệ phí\",\"pct\",0,0,\"\"],[\"thue_gtgt_phap_ly_vnd\",\"Tiền VAT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_phap_ly_sau_thue_vnd\",\"Giá trị sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"thue_gtgt_net_vnd\",\"Tiền VAT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_net_sau_thue_vnd\",\"Giá trị sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"nhieu_loai_thue_vat_net\",\"Nhiều loại thuế VAT\",\"text\",0,0,\"\"],[\"thue_suat_vat_net\",\"Thuế suất VAT\",\"ls:lst_VAT\",0,0,\"\"],[\"\",\"Phần việc đảm nhận\",\"grid\",0,0,\"\"]]},{\"n\":\"Tài khoản\",\"ic\":\"🏦\",\"f\":[[\"phuong_thuc_thanh_toan_ld\",\"Phương thức thanh toán (LD)\",\"ls:lst_PTThanhToanLD\",1,0,\"\"],[\"\",\"Tài khoản thụ hưởng\",\"grid\",1,1,\"\"]]},{\"n\":\"Tiến độ\",\"ic\":\"📅\",\"f\":[[\"ngay_bat_dau\",\"Ngày bắt đầu\",\"date\",0,0,\"\"],[\"loai_tien_do\",\"Loại tiến độ\",\"text\",0,0,\"\"],[\"thoi_gian_ngay\",\"Thời gian (ngày)\",\"money\",0,0,\"ĐV: ngày\"],[\"ngay_ket_thuc_theo_hd\",\"Ngày kết thúc (theo HĐ)\",\"date\",0,0,\"\"]]},{\"n\":\"Bảo hành\",\"ic\":\"🛠\",\"f\":[[\"co_bao_hanh\",\"Yêu cầu bảo hành\",\"ls:lst_CoKhong\",0,0,\"\"],[\"hinh_thuc_bao_dam_bao_hanh\",\"Hình thức bảo đảm bảo hành\",\"ls:lst_HTBaoHanh\",0,0,\"\"],[\"cach_xac_dinh_bao_hanh\",\"Cách xác định\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_bao_hanh\",\"Căn cứ tính\",\"text\",0,0,\"\"],[\"ty_le_giu_lai_bao_hanh\",\"Tỷ lệ bảo hành\",\"pct\",0,0,\"\"],[\"gia_tri_bao_hanh_co_dinh_vnd\",\"Giá trị bảo hành (VNĐ)\",\"money\",0,0,\"\"],[\"gia_tri_bao_hanh_yeu_cau_vnd\",\"Giá trị bảo hành (VNĐ)\",\"ro\",0,0,\"\"],[",
+  "\"thoi_gian_bao_hanh_thang\",\"Thời gian bảo hành (tháng)\",\"text\",0,0,\"ĐV: tháng\"],[\"hinh_thuc_bao_hanh\",\"Hình thức bảo hành\",\"ls:lst_MoHinhLD\",1,0,\"\"]]},{\"n\":\"Tạm ứng & thanh quyết toán\",\"ic\":\"💳\",\"f\":[[\"co_tam_ung\",\"Yêu cầu tạm ứng\",\"ls:lst_CoKhong\",0,0,\"\"],[\"cach_xac_dinh_tam_ung\",\"Cách xác định\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_tam_ung\",\"Căn cứ tính\",\"text\",0,0,\"\"],[\"ty_le_tam_ung\",\"Tỷ lệ tạm ứng\",\"pct\",0,0,\"\"],[\"gia_tri_tam_ung_co_dinh_vnd\",\"Giá trị tạm ứng (VNĐ)\",\"money\",0,0,\"\"],[\"gia_tri_tam_ung_theo_hd_vnd\",\"Giá trị tạm ứng (VNĐ) / Tổng giá trị tạm ứng (VNĐ)\",\"ro\",0,0,\"\"],[\"ty_le_thanh_toan_toi_da_moi_dot\",\"Tỷ lệ thanh toán đợt\",\"pct\",1,0,\"\"],[\"co_thanh_toan_vat_tu\",\"Yêu cầu thanh toán vật tư\",\"ls:lst_CoKhong\",0,0,\"\"],[\"ty_le_thanh_toan_vat_tu\",\"Tỷ lệ thanh toán vật tư\",\"pct\",0,0,\"\"],[\"can_cu_thanh_toan_vat_tu\",\"Căn cứ thanh toán vật tư\",\"ls:lst_CanCuVatTu\",0,0,\"\"],[\"so_dot_tam_ung\",\"Số đợt tạm ứng\",\"num\",0,0,\"\"],[\"\",\"Đợt tạm ứng 1…n\",\"grid\",0,0,\"\"],[\"hinh_thuc_tam_ung_thanh_toan\",\"Hình thức tạm ứng & thanh toán\",\"ls:lst_MoHinhLD\",1,0,\"\"]]},{\"n\":\"Tạm ứng & thanh quyết toán – Giá thực\",\"ic\":\"💳\",\"f\":[[\"so_dot_tam_ung_net\",\"Số đợt tạm ứng\",\"num\",0,0,\"\"],[\"\",\"Đợt tạm ứng 1…n\",\"grid\",0,0,\"\"]]},{\"n\":\"Bảo lãnh\",\"ic\":\"🛡\",\"f\":[[\"co_bao_lanh_thuc_hien\",\"Yêu cầu bảo lãnh thực hiện\",\"ls:lst_CoKhong\",0,0,\"\"],[\"cach_xac_dinh_bao_lanh\",\"Cách xác định\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_bao_lanh\",\"Căn cứ tính\",\"text\",0,0,\"\"],[\"ty_le_bao_lanh_thuc_hien\",\"Tỷ lệ bảo lãn",
+  "h\",\"pct\",0,0,\"\"],[\"gia_tri_bao_lanh_co_dinh_vnd\",\"Giá trị bảo lãnh (VNĐ)\",\"money\",0,0,\"\"],[\"bao_lanh_thuc_hien_yeu_cau_vnd\",\"Giá trị bảo lãnh (VNĐ)\",\"ro\",0,0,\"\"],[\"thoi_han_hieu_luc_bao_lanh_ngay\",\"Thời hạn hiệu lực bảo lãnh (ngày)\",\"text\",0,0,\"ĐV: ngày\"],[\"yeu_cau_bao_lanh_tam_ung\",\"Yêu cầu bảo lãnh tạm ứng\",\"ls:lst_CoKhong\",0,0,\"\"],[\"thoi_han_hieu_luc_bl_tam_ung_ngay\",\"Thời hạn hiệu lực bảo lãnh (ngày)\",\"num\",0,0,\"\"],[\"\",\"Bảo lãnh tạm ứng – Đợt 1…n\",\"grid\",0,0,\"\"],[\"yeu_cau_bao_lanh_thanh_toan\",\"Yêu cầu bảo lãnh thanh toán\",\"ls:lst_CoKhong\",0,0,\"\"],[\"ap_dung_bl_thanh_toan\",\"Áp dụng cho\",\"text\",0,0,\"\"],[\"cach_xac_dinh_bl_thanh_toan\",\"Cách xác định\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"ty_le_bao_lanh_thanh_toan\",\"Tỷ lệ (so với giá trị mỗi lần thanh toán)\",\"pct\",0,0,\"\"],[\"gia_tri_bl_thanh_toan_co_dinh\",\"Giá trị bảo lãnh thanh toán (VNĐ)\",\"money\",0,0,\"\"],[\"thoi_han_hieu_luc_bl_thanh_toan_ngay\",\"Thời hạn hiệu lực bảo lãnh (ngày)\",\"num\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ty_le_net_phap_ly\",\"Tỷ lệ Net / pháp lý\",\"ro\",0,0,\"\"],[\"cap_quan_ly_tai_chinh\",\"Cấp quản lý tài chính\",\"ro\",0,0,\"\"],[\"so_thanh_vien\",\"Số thành viên\",\"ro\",0,0,\"VD: 2 | ĐV: thành viên\"],[\"loai_hop_dong\",\"Loại hợp đồng\",\"ro\",0,0,\"\"],[\"ma_chi_phi\",\"Mã chi phí\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_hop_dong\",\"Mã hợp đồng\",\"text\",1,0,\"\"],[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: K",
+  "hu đô thị ABC Riverside\"],[\"ten_lien_danh\",\"Tên liên danh\",\"text\",1,1,\"VD: Liên danh Alpha – Gamma\"],[\"ma_nha_thau\",\"Mã nhà thầu\",\"ls:lst_MaNhaThau\",1,0,\"\"]]}]},{\"t\":\"Thành viên LD\",\"tb\":\"hd_thanh_vien\",\"tit\":\"👥 Thành viên liên danh\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_thanh_vien\",\"Mã thành viên\",\"text\",1,0,\"\"],[\"ma_hop_dong\",\"Mã hợp đồng\",\"ls:lst_MaHopDong\",1,0,\"\"],[\"ma_nha_thau\",\"Mã nhà thầu\",\"ls:lst_MaNhaThau\",1,0,\"\"],[\"ma_chi_phi\",\"Mã chi phí\",\"ls:lst_MaChiPhiNhap\",1,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"vai_tro\",\"Vai trò\",\"ls:lst_VaiTroNT\",0,0,\"\"],[\"phan_viec_dam_nhan\",\"Phần việc đảm nhận\",\"text\",0,0,\"\"],[\"co_tam_ung\",\"Có tạm ứng\",\"ls:lst_CoKhong\",0,0,\"\"],[\"cach_xac_dinh_tam_ung\",\"Cách xác định tạm ứng\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_tam_ung\",\"Căn cứ tính tạm ứng\",\"ls:lst_CanCuTinh\",0,0,\"\"],[\"yeu_cau_bao_lanh_tam_ung\",\"Yêu cầu bảo lãnh tạm ứng\",\"ls:lst_CoKhong\",0,0,\"\"],[\"co_thanh_toan_vat_tu\",\"Có thanh toán vật tư\",\"ls:lst_CoKhong\",0,0,\"\"],[\"can_cu_thanh_toan_vat_tu\",\"Căn cứ thanh toán vật tư\",\"ls:lst_CanCuVatTu\",0,0,\"\"],[\"co_bao_hanh\",\"Có bảo hành\",\"ls:lst_CoKhong\",0,0,\"\"],[\"hinh_thuc_bao_dam_bao_hanh\",\"Hình thức bảo đảm bảo hành\",\"ls:lst_HTBaoHanh\",0,0,\"\"],[\"cach_xac_dinh_bao_hanh\",\"Cách xác định bảo hành\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_bao_hanh\",\"Căn cứ tính bảo hành\",\"ls:lst_CanCuTinh\",0,0,\"\"],[\"co_bao_lanh_thuc_hien\",\"Có bảo lãnh thực hiện\",\"ls:lst_CoKhong\",0,0,\"\"],[\"cach_xac_dinh_bao_lanh\",\"Cách xác định bảo lãn",
+  "h\",\"ls:lst_CachXacDinh\",0,0,\"\"],[\"can_cu_tinh_bao_lanh\",\"Căn cứ tính bảo lãnh\",\"ls:lst_CanCuTinh\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"thoi_gian_bao_hanh_thang\",\"Thời gian bảo hành (tháng)\",\"text\",0,0,\"ĐV: tháng\"],[\"thoi_han_hieu_luc_bao_lanh_ngay\",\"Thời hạn hiệu lực bảo lãnh (ngày)\",\"text\",0,0,\"ĐV: ngày\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"gia_tri_phap_ly_phan_viec_truoc_thue_vnd\",\"Giá trị pháp lý phần việc trước thuế (VNĐ)\",\"money\",0,0,\"\"],[\"gia_tri_net_phan_viec_truoc_thue_vnd\",\"Giá trị Net phần việc trước thuế (VNĐ)\",\"money\",0,0,\"\"],[\"ty_le_tam_ung\",\"Tỷ lệ tạm ứng\",\"pct\",0,0,\"\"],[\"gia_tri_tam_ung_co_dinh_vnd\",\"Giá trị tạm ứng cố định (VNĐ)\",\"money\",0,0,\"\"],[\"ty_le_thanh_toan_toi_da_moi_dot\",\"Tỷ lệ thanh toán tối đa mỗi đợt\",\"pct\",0,0,\"\"],[\"ty_le_thanh_toan_vat_tu\",\"Tỷ lệ thanh toán vật tư\",\"pct\",0,0,\"\"],[\"ty_le_giu_lai_bao_hanh\",\"Tỷ lệ giữ lại bảo hành\",\"pct\",0,0,\"\"],[\"gia_tri_bao_hanh_co_dinh_vnd\",\"Giá trị bảo hành cố định (VNĐ)\",\"money\",0,0,\"\"],[\"ty_le_bao_lanh_thuc_hien\",\"Tỷ lệ bảo lãnh thực hiện\",\"pct\",0,0,\"\"],[\"gia_tri_bao_lanh_co_dinh_vnd\",\"Giá trị bảo lãnh cố định (VNĐ)\",\"money\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_du_an\",\"Mã dự án\",\"ro\",0,0,\"\"],[\"hinh_thuc_nha_thau\",\"Hình thức nhà thầu\",\"ro\",0,0,\"\"],[\"ten_nha_thau\",\"Tên nhà thầu\",\"ro\",1,1,\"\"],[\"ty_le_phan_viec\",\"Tỷ lệ phần việc\",\"ro\",0,0,\"\"],[\"tham_gia_tai_chinh\",\"Tham gia tài chính\",\"ro\",0,0,\"\"],[\"gia_tri_phap_ly_phan_viec_sau_thue_vnd\",\"Giá trị pháp lý phần việc sau thuế (VNĐ)\",\"r",
+  "o\",0,0,\"\"],[\"gia_tri_net_phan_viec_sau_thue_vnd\",\"Giá trị Net phần việc sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"nha_thau_nhan_tien\",\"Nhà thầu nhận tiền\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]},{\"t\":\"Phụ lục\",\"tb\":\"phu_luc\",\"tit\":\"📎 Phụ lục\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_phu_luc\",\"Mã phụ lục\",\"text\",0,0,\"\"],[\"ma_hop_dong\",\"Mã hợp đồng\",\"ls:lst_MaHopDong\",1,0,\"\"],[\"ma_thanh_vien\",\"Mã thành viên\",\"ls:lst_MaThanhVien\",0,0,\"\"],[\"ma_noi_dung_dieu_chinh\",\"Mã nội dung điều chỉnh\",\"text\",1,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"stt\",\"STT\",\"text\",0,0,\"\"],[\"so_phu_luc\",\"Số phụ lục\",\"text\",0,0,\"\"],[\"loai_dieu_chinh\",\"Loại điều chỉnh\",\"ls:lst_LoaiPL\",0,0,\"\"],[\"gia_tri_dieu_chinh\",\"Giá trị điều chỉnh\",\"text\",0,0,\"\"],[\"dien_giai\",\"Diễn giải\",\"text\",1,1,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_ky\",\"Ngày ký\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"thue_suat_vat\",\"Thuế suất VAT\",\"ls:lst_VAT\",1,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_dong_pl\",\"Mã dòng PL\",\"ro\",1,0,\"\"],[\"thu_tu_hieu_luc\",\"Thứ tự hiệu lực\",\"ro\",0,0,\"\"],[\"ma_du_an\",\"Mã dự án\",\"ro\",0,0,\"\"],[\"noi_dung_dieu_chinh\",\"Nội dung điều chỉnh\",\"ro\",0,0,\"\"],[\"kieu_gia_tri\",\"Kiểu giá trị\",\"ro\",0,0,\"\"],[\"cach_nhap\",\"Cách nhập\",\"ro\",0,0,\"\"],[\"gia_tri_truoc_dieu_chinh\",\"Giá trị trước điều chỉnh\",\"ro\",0,0,\"\"],[\"thue_gtgt_vnd\",\"Thuế GTGT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_dieu_chinh_sau_thue_vnd\",\"Giá trị",
+  " điều chỉnh sau thuế (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_sau_dieu_chinh\",\"Giá trị sau điều chỉnh\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]},{\"t\":\"Bảo lãnh\",\"tb\":\"bao_lanh\",\"tit\":\"🛡️ Bảo lãnh\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_bao_lanh\",\"Mã bảo lãnh\",\"text\",1,0,\"\"],[\"ma_hop_dong\",\"Mã hợp đồng\",\"ls:lst_MaHopDong\",1,0,\"\"],[\"ma_thanh_vien\",\"Mã thành viên\",\"ls:lst_MaThanhVien\",0,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"loai_bao_lanh\",\"Loại bảo lãnh\",\"ls:lst_LoaiBL\",0,0,\"\"],[\"ngan_hang_phat_hanh\",\"Ngân hàng phát hành\",\"text\",0,0,\"\"],[\"so_thu_bao_lanh\",\"Số thư bảo lãnh\",\"text\",0,0,\"\"],[\"gia_han_theo_pl_ma_dong_pl\",\"Căn cứ\",\"text\",0,0,\"Đề xuất PL đã ký làm phát sinh yêu cầu loại BL (VD: PL bật Yêu cầu BL tạm ứng = Có); không có PL → theo hợp đồng\"],[\"da_giai_toa\",\"Đã giải tỏa\",\"ls:lst_CoKhong\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_phat_hanh\",\"Ngày phát hành\",\"date\",0,0,\"\"],[\"ngay_het_han\",\"Ngày hết hạn\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"gia_tri_bao_lanh_vnd\",\"Giá trị bảo lãnh (VNĐ)\",\"money\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_don_vi_tc\",\"Mã đơn vị TC\",\"ro\",0,0,\"\"],[\"ma_du_an\",\"Mã dự án\",\"ro\",0,0,\"\"],[\"ma_nha_thau\",\"Mã nhà thầu\",\"ro\",0,0,\"\"],[\"ten_nha_thau\",\"Tên nhà thầu\",\"ro\",1,1,\"\"],[\"gia_tri_yeu_cau_vnd\",\"Giá trị yêu cầu (VNĐ)\",\"ro\",0,0,\"\"],[\"so_ngay_con_hieu_luc\",\"Số ngày còn hiệu lực\",\"ro\",0,0,\"\"],[\"tinh_trang\",\"Tình ",
+  "trạng\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]},{\"t\":\"TK nhà thầu\",\"tb\":\"tai_khoan_nt\",\"tit\":\"🏦 TK nhà thầu\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_tk\",\"Mã TK\",\"text\",1,0,\"\"],[\"ma_nha_thau\",\"Mã nhà thầu\",\"ls:lst_MaNhaThau\",1,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"so_tai_khoan\",\"Số tài khoản\",\"text\",0,0,\"\"],[\"ten_chu_tai_khoan\",\"Tên chủ tài khoản\",\"text\",0,0,\"\"],[\"ngan_hang\",\"Ngân hàng\",\"text\",0,0,\"\"],[\"chi_nhanh\",\"Chi nhánh\",\"text\",0,0,\"\"],[\"tk_mac_dinh\",\"TK mặc định\",\"ls:lst_CoKhong\",0,0,\"\"],[\"dang_su_dung\",\"Đang sử dụng\",\"ls:lst_CoKhong\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ten_nha_thau\",\"Tên nhà thầu\",\"ro\",1,1,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]},{\"m\":\"💳 Thanh toán\",\"s\":[{\"t\":\"Nghiệm thu\",\"tb\":\"nghiem_thu\",\"tit\":\"✅ Nghiệm thu\",\"q\":1,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[]},{\"n\":\"Giá trị\",\"ic\":\"💰\",\"f\":[]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[]}]},{\"t\":\"Thanh toán\",\"tb\":\"thanh_toan\",\"tit\":\"💳 Thanh toán\",\"q\":1,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"\",\"Số biên bản nghiệm thu\",\"grid\",1,1,\"\"]]},{\"n\":\"Đề nghị\",\"ic\":\"💰\",\"f\":[]},{\"n\":\"Hoá đơn\",\"ic\":\"🧾\",\"f\":[]},{\"n\":\"Phê duyệt\",\"ic\":\"✅\",\"f\":[]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[]}]},{\"t\":\"Quyết toán HĐ\",\"tb\":\"qt",
+  "_hop_dong\",\"tit\":\"📘 Quyết toán HĐ\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_quyet_toan_hd\",\"Mã quyết toán HĐ\",\"text\",1,0,\"\"],[\"ma_hop_dong\",\"Mã hợp đồng\",\"ls:lst_MaHopDong\",1,0,\"\"],[\"ma_thanh_vien\",\"Mã thành viên\",\"ls:lst_MaThanhVien\",0,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"so_bien_ban_quyet_toan\",\"Số biên bản quyết toán\",\"text\",0,0,\"\"],[\"trang_thai_phe_duyet\",\"Trạng thái phê duyệt\",\"text\",1,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_quyet_toan\",\"Ngày quyết toán\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"gia_tri_quyet_toan_vnd\",\"Giá trị quyết toán (VNĐ)\",\"money\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_don_vi_tc\",\"Mã đơn vị TC\",\"ro\",0,0,\"\"],[\"ma_du_an\",\"Mã dự án\",\"ro\",0,0,\"\"],[\"gia_tri_phan_viec_hien_hanh_vnd\",\"Giá trị phần việc hiện hành (VNĐ)\",\"ro\",0,0,\"\"],[\"luy_ke_nghiem_thu_vnd\",\"Lũy kế nghiệm thu (VNĐ)\",\"ro\",0,0,\"\"],[\"chenh_lech_qt_hd_vnd\",\"Chênh lệch QT – HĐ (VNĐ)\",\"ro\",0,0,\"\"],[\"da_thanh_toan_klht_vnd\",\"Đã thanh toán KLHT (VNĐ)\",\"ro\",0,0,\"\"],[\"gia_tri_con_phai_tt_theo_qt_vnd\",\"Giá trị còn phải TT theo QT (VNĐ)\",\"ro\",0,0,\"\"],[\"da_thanh_toan_quyet_toan_vnd\",\"Đã thanh toán quyết toán (VNĐ)\",\"ro\",0,0,\"\"],[\"con_phai_thanh_toan_vnd\",\"Còn phải thanh toán (VNĐ)\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]},{\"m\":\"🧾 Chi ngoài HĐ\",\"s\":[{\"t\":\"Chi ngoài HĐ\",\"tb\":\"chi_ngoai_hd\",\"tit\":\"🧾 Chi ngoài HĐ\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"i",
+  "c\":\"🔑\",\"f\":[[\"ma_chi_ngoai_hd\",\"Mã chi ngoài HĐ\",\"text\",1,0,\"\"],[\"ma_du_an\",\"Mã dự án\",\"ls:lst_MaDuAn\",1,0,\"\"],[\"ma_chi_phi\",\"Mã chi phí\",\"ls:lst_MaChiPhiNhap\",1,0,\"\"],[\"ma_nguon_von\",\"Mã nguồn vốn\",\"ls:lst_MaNguonVon\",1,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"noi_dung_chi\",\"Nội dung chi\",\"text\",0,0,\"\"],[\"don_vi_nhan_tien\",\"Đơn vị nhận tiền\",\"text\",0,0,\"\"],[\"so_chung_tu\",\"Số chứng từ\",\"text\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_chi\",\"Ngày chi\",\"date\",1,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"so_tien_truoc_thue_vnd\",\"Số tiền trước thuế (VNĐ)\",\"money\",0,0,\"\"],[\"thue_suat_vat\",\"Thuế suất VAT\",\"ls:lst_VAT\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"ten_khoan_muc\",\"Tên khoản mục\",\"ro\",0,0,\"\"],[\"ma_cap_1\",\"Mã cấp 1\",\"ro\",0,0,\"\"],[\"thang_chi\",\"Tháng chi\",\"ro\",0,0,\"\"],[\"thue_gtgt_vnd\",\"Thuế GTGT (VNĐ)\",\"ro\",0,0,\"\"],[\"so_tien_thuc_chi_vnd\",\"Số tiền thực chi (VNĐ)\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]},{\"m\":\"🏛️ Đơn vị\",\"s\":[{\"t\":\"Chủ đầu tư\",\"tb\":\"cong_ty\",\"tit\":\"🏛️ Chủ đầu tư\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin công ty\",\"ic\":\"🏛️\",\"f\":[[\"ma_so_thue\",\"Mã số thuế\",\"text\",1,0,\"VD: 0101234567 – Enter để tra cứu\"],[\"ten_cong_ty\",\"Tên công ty\",\"text\",1,1,\"VD: Công ty CP Phát triển ABC\"],[\"ten_viet_tat\",\"Tên viết tắt\",\"text\",0,0,\"\"],[\"dia_chi_tru_so\",\"Địa chỉ trụ sở\",\"text\",0,1,\"\"],[\"trang_thai\",\"Tr",
+  "ạng thái\",\"ls:lst_TrangThaiHoatDong\",0,0,\"Hoạt động / Tạm ngừng / Giải thể – tra cứu pha.vn tự chuẩn hoá về danh mục này\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"so_du_an\",\"Số dự án\",\"ro\",0,0,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_cong_ty\",\"Mã công ty\",\"text\",1,0,\"\"]]}]},{\"t\":\"Nhà thầu\",\"tb\":\"nha_thau\",\"tit\":\"👷 Nhà thầu\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin chung\",\"ic\":\"👷\",\"f\":[[\"ma_so_thue\",\"Mã số thuế\",\"text\",1,0,\"VD: 0101234567 – Enter để tra cứu\"],[\"ten_nha_thau\",\"Tên nhà thầu\",\"text\",1,1,\"\"],[\"ten_viet_tat\",\"Tên viết tắt\",\"text\",0,0,\"\"],[\"linh_vuc_chinh\",\"Lĩnh vực chính\",\"ls:lst_LinhVucNT\",0,0,\"\"],[\"dia_chi\",\"Địa chỉ\",\"text\",0,1,\"\"],[\"nguoi_dai_dien\",\"Người đại diện\",\"text\",0,0,\"\"],[\"dien_thoai\",\"Điện thoại\",\"text\",0,0,\"\"],[\"email\",\"Email\",\"text\",0,0,\"\"]]},{\"n\":\"Năng lực & đánh giá\",\"ic\":\"🏅\",\"f\":[[\"hang_chung_chi_nang_luc\",\"Hạng chứng chỉ năng lực\",\"text\",0,0,\"\"],[\"xep_hang_noi_bo\",\"Xếp hạng nội bộ\",\"ls:lst_XepHangNT\",0,0,\"\"],[\"duoc_phep_giao_thau\",\"Được phép giao thầu\",\"ls:lst_CoKhong\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"so_tk_dang_ky\",\"Số TK đăng ký\",\"ro\",0,0,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_nha_thau\",\"Mã nhà thầu\",\"text\",1,0,\"\"]]}]},{\"t\":\"Liên danh\",\"tb\":\"lien_danh\",\"tit\":\"🤝 Liên danh\",\"q\":0,\"tabs\":[{\"n\":\"Thông tin liên danh\",\"ic\":\"🤝\",\"f\":[[\"ten_lien_danh\",\"Tên liên danh\",",
+  "\"text\",1,1,\"VD: Liên danh Alpha – Gamma\"],[\"so_thanh_vien\",\"Số thành viên\",\"text\",1,0,\"VD: 2 | ĐV: thành viên\"],[\"ma_nt_dung_dau\",\"Thành viên 1 – đứng đầu\",\"lk:nha_thau:ma_nha_thau:ten_nha_thau\",1,0,\"\"],[\"ma_cac_thanh_vien_khac\",\"Mã các thành viên khác\",\"text\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ten_cac_thanh_vien_khac\",\"Tên các thành viên khác\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]},{\"n\":\"(Không hiển thị)\",\"ic\":\"\",\"f\":[[\"ma_lien_danh\",\"Mã liên danh\",\"text\",1,0,\"\"],[\"ten_nt_dung_dau\",\"Tên NT đứng đầu\",\"ro\",0,0,\"\"]]}]}]},{\"m\":\"📅 Kế hoạch vốn\",\"s\":[{\"t\":\"Kế hoạch vốn\",\"tb\":\"ke_hoach_von\",\"tit\":\"📅 Kế hoạch vốn\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_du_an\",\"Mã dự án\",\"ls:lst_MaDuAn\",1,0,\"\"],[\"ma_km_cap_1\",\"Mã KM cấp 1\",\"ls:lst_MaChiPhiCap1\",1,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"thang\",\"Tháng\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"ke_hoach_giai_ngan_vnd\",\"Kế hoạch giải ngân (VNĐ)\",\"money\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_dong_kh\",\"Mã dòng KH\",\"ro\",1,0,\"\"],[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"khoan_muc_cap_1\",\"Khoản mục cấp 1\",\"ro\",0,0,\"\"],[\"nam\",\"Năm\",\"ro\",0,0,\"\"],[\"thuc_chi_vnd\",\"Thực chi (VNĐ)\",\"ro\",0,0,\"\"],[\"chenh_lech_th_kh_vnd\",\"Chênh lệch TH – KH (VNĐ)\",\"ro\",0,0,\"\"],[\"ty_le_thuc_hien\",\"Tỷ lệ thực hiện\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết",
+  "\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]},{\"t\":\"Nguồn vốn\",\"tb\":\"co_cau_von\",\"tit\":\"🏛️ Nguồn vốn\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_nguon_von\",\"Mã nguồn vốn\",\"text\",1,0,\"\"],[\"ma_du_an\",\"Mã dự án\",\"ls:lst_MaDuAn\",1,0,\"\"]]},{\"n\":\"Thông tin chung\",\"ic\":\"📝\",\"f\":[[\"loai_nguon_von\",\"Loại nguồn vốn\",\"ls:lst_NguonVon\",0,0,\"\"],[\"to_chuc_cap_von_doi_tac\",\"Tổ chức cấp vốn / Đối tác\",\"text\",0,0,\"\"],[\"so_hd_tin_dung_van_ban\",\"Số HĐ tín dụng / văn bản\",\"text\",0,0,\"\"]]},{\"n\":\"Thời gian\",\"ic\":\"📅\",\"f\":[[\"ngay_ky\",\"Ngày ký\",\"date\",0,0,\"\"],[\"ngay_dao_han\",\"Ngày đáo hạn\",\"date\",0,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"lai_suat_nam\",\"Lãi suất (%/năm)\",\"pct\",0,0,\"\"],[\"gia_tri_cam_ket_vnd\",\"Giá trị cam kết (VNĐ)\",\"money\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ten_du_an\",\"Tên dự án\",\"ro\",1,1,\"VD: Khu đô thị ABC Riverside\"],[\"ty_trong_tmdt_hien_hanh\",\"Tỷ trọng / TMĐT hiện hành\",\"ro\",0,0,\"\"],[\"tong_nguon_von_du_an_vnd\",\"Tổng nguồn vốn dự án (VNĐ)\",\"ro\",0,0,\"\"],[\"tmdt_hien_hanh_vnd\",\"TMĐT hiện hành (VNĐ)\",\"ro\",0,0,\"\"],[\"chenh_lech_nguon_von_tmdt_vnd\",\"Chênh lệch nguồn vốn – TMĐT (VNĐ)\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]},{\"m\":\"⚙️ Tham số\",\"s\":[{\"t\":\"Tham số\",\"tb\":\"tham_so\",\"tit\":\"⚙️ Tham số\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_nhom\",\"Mã nhóm\",\"ls:lst_MaNhomThamSo\",1,0,\"\"],[\"ma_gia_tri\",\"Mã giá trị\",\"text\",0,0,\"\"]]},{\"n\":\"Thông t",
+  "in chung\",\"ic\":\"📝\",\"f\":[[\"gia_tri\",\"Giá trị\",\"text\",0,0,\"\"],[\"thu_tu\",\"Thứ tự\",\"text\",0,0,\"\"],[\"dang_dung\",\"Đang dùng\",\"text\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"nhom_tham_so\",\"Nhóm tham số\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]},{\"m\":\"(Ngoài menu – mở từ màn hình khác)\",\"s\":[{\"t\":\"Phạm vi gói thầu\",\"tb\":\"goi_thau_ct\",\"tit\":\"📦 Phạm vi gói thầu\",\"q\":0,\"tabs\":[{\"n\":\"Mã & liên kết\",\"ic\":\"🔑\",\"f\":[[\"ma_dong_gt\",\"Mã dòng GT\",\"text\",1,0,\"\"],[\"ma_goi_thau\",\"Mã gói thầu\",\"text\",1,0,\"\"],[\"ma_du_toan\",\"Mã dự toán\",\"text\",0,0,\"\"],[\"ma_chi_phi\",\"Mã chi phí\",\"text\",1,0,\"\"]]},{\"n\":\"Giá trị & tỷ lệ\",\"ic\":\"💰\",\"f\":[[\"gia_tri_phan_bo_truoc_thue_vnd\",\"Giá trị phân bổ trước thuế (VNĐ)\",\"money\",1,0,\"\"],[\"loai_phan_bo\",\"Loại phân bổ\",\"ls:lst_LoaiPhanBo\",1,0,\"Gốc (mặc định) / Điều chuyển đi (nhập số âm) / Điều chuyển đến (nhập số dương)\"],[\"ma_dong_gt_doi_ung\",\"Mã dòng GT đối ứng\",\"lk:goi_thau_ct:ma_dong_gt:\",1,0,\"Dòng của gói thầu bên kia (trỏ chéo nhau)\"],[\"so_van_ban_dieu_chuyen\",\"Số văn bản điều chuyển\",\"text\",0,0,\"Số QĐ/văn bản điều chuyển phạm vi\"],[\"ngay_van_ban_dieu_chuyen\",\"Ngày văn bản điều chuyển\",\"date\",0,0,\"\"]]},{\"n\":\"Tự tính (chỉ xem)\",\"ic\":\"ƒx\",\"f\":[[\"ma_du_an\",\"Mã dự án\",\"ro\",0,0,\"\"],[\"ten_du_toan_hang_muc\",\"Tên dự toán / hạng mục\",\"ro\",0,1,\"\"],[\"ten_khoan_muc\",\"Tên khoản mục\",\"ro\",0,0,\"\"],[\"du_toan_hieu_luc_hang_muc_truoc_thue_vnd\",\"Dự toán hiệu lực hạng mục trước thuế (",
+  "VNĐ)\",\"ro\",0,0,\"\"],[\"luy_ke_phan_bo_cac_goi_vnd\",\"Lũy kế phân bổ các gói (VNĐ)\",\"ro\",0,0,\"\"],[\"du_toan_con_lai_vnd\",\"Dự toán còn lại (VNĐ)\",\"ro\",0,0,\"\"],[\"kiem_tra\",\"Kiểm tra\",\"ro\",0,1,\"\"]]},{\"n\":\"Ghi chú & lưu vết\",\"ic\":\"🕒\",\"f\":[[\"ghi_chu\",\"Ghi chú\",\"area\",0,1,\"\"]]}]}]}],\"keys\":{\"nhom_tham_so\":[\"ma_nhom\"],\"tham_so\":[\"ma_gia_tri\"],\"cong_ty\":[\"ma_cong_ty\"],\"du_an\":[\"ma_du_an\"],\"ma_chi_phi\":[\"ma_chi_phi\"],\"nha_thau\":[\"ma_nha_thau\"],\"lien_danh\":[\"ma_lien_danh\"],\"tai_khoan_nt\":[\"ma_tk\"],\"truong_dc\":[\"ma_noi_dung\"],\"tmdt\":[\"ma_qd_tmdt\"],\"tmdt_ct\":[\"ma_qd_tmdt\",\"ma_chi_phi\"],\"du_toan\":[\"ma_phien_ban_dt\"],\"du_toan_ct\":[\"ma_phien_ban_dt\",\"ma_chi_phi\"],\"co_cau_von\":[\"ma_nguon_von\"],\"goi_thau\":[\"ma_goi_thau\"],\"goi_thau_ct\":[\"ma_dong_gt\"],\"hop_dong\":[\"ma_hop_dong\"],\"hd_thanh_vien\":[\"ma_thanh_vien\"],\"hd_gia_tri_ct\":[\"ma_dong_gt_hd\"],\"hd_tam_ung\":[\"ma_dong_tu_hd\"],\"phu_luc\":[\"ma_dong_pl\"],\"hd_tai_khoan\":[\"ma_dong_tk_hd\"],\"bao_lanh\":[\"ma_bao_lanh\"],\"nghiem_thu\":[\"ma_nghiem_thu\"],\"thanh_toan\":[\"ma_giao_dich\"],\"hoa_don\":[\"ma_hoa_don\"],\"chi_ngoai_hd\":[\"ma_chi_ngoai_hd\"],\"qt_hop_dong\":[\"ma_quyet_toan_hd\"],\"qt_du_an\":[\"ma_quyet_toan_da\"],\"ke_hoach_von\":[\"ma_dong_kh\"]}}"
+].join(""));
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const AUD = ["ngay_tao", "nguoi_tao", "ngay_sua", "nguoi_sua"];
+let sb = null, MODE = "web", USER = null, booted = false;
+const CACHE = { ls: null, lk: {}, views: {} };
+
+function msg(t, bad) {
+  const m = $("#msg"); m.textContent = t; m.style.background = bad ? "#c0392b" : "#1e7b34"; m.style.display = "block";
+  clearTimeout(m._t); m._t = setTimeout(() => m.style.display = "none", bad ? 9000 : 4000);
+}
+function fmt(v) {
+  if (v == null) return "";
+  if (typeof v === "number") return v.toLocaleString("vi-VN", { maximumFractionDigits: 4 });
+  if (/^\d{4}-\d{2}-\d{2}/.test(v)) { const d = String(v).slice(0, 10).split("-"); return d[2] + "/" + d[1] + "/" + d[0] + (String(v).length > 10 ? " " + String(v).slice(11, 16) : ""); }
+  return v;
+}
+
+// ---------- KHỞI ĐỘNG: tự nhận biết chạy trong Excel hay trình duyệt ----------
+function go(host) { if (booted) return; booted = true; boot(host); }
+if (window.Office && Office.onReady) Office.onReady(i => go(i && i.host === Office.HostType.Excel ? "excel" : "web"));
+setTimeout(() => go("web"), 3000);
+
+function boot(host) {
+  MODE = host;
+  $("#modeTag").textContent = MODE === "excel" ? "· Chế độ Excel (add-in)" : "· Chế độ Web";
+  if (!/^https:\/\//.test(SUPABASE_URL) || !SUPABASE_KEY) {
+    $("#view").innerHTML = '<div class="card warn">Chưa khai báo SUPABASE_URL / SUPABASE_KEY (sheet WEB_APP, ô B4:B5) – sửa rồi copy lại code lên GitHub.</div>'; return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb.auth.getSession().then(({ data }) => { if (data.session) { USER = data.session.user; start(); } else showLogin(); });
+}
+
+function showLogin() {
+  $("#nav").innerHTML = ""; $("#tabs").innerHTML = ""; $("#btnOut").style.display = "none"; $("#who").textContent = "";
+  $("#view").innerHTML = `<div class="card" style="max-width:360px;margin:40px auto"><h3 style="margin-top:0">Đăng nhập</h3>
+    <label>Email</label><input id="em" type="email" autocomplete="username">
+    <label style="margin-top:8px">Mật khẩu</label><input id="pw" type="password" autocomplete="current-password">
+    <div class="row" style="margin-top:12px"><button class="b" id="bLogin">Đăng nhập</button></div>
+    <div class="muted">Tài khoản do quản trị tạo trong Supabase → Authentication → Users.</div></div>`;
+  $("#bLogin").onclick = async () => {
+    const { data, error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value });
+    if (error) return msg("Đăng nhập lỗi: " + error.message, 1);
+    USER = data.user; start();
+  };
+  $("#pw").onkeydown = e => { if (e.key === "Enter") $("#bLogin").click(); };
+}
+
+function start() {
+  $("#who").textContent = USER.email; $("#btnOut").style.display = "";
+  $("#btnOut").onclick = async () => { await sb.auth.signOut(); USER = null; showLogin(); };
+  const T = [["nhap", "Nhập liệu"], ["hh", "Hợp đồng hiện hành"]];
+  if (MODE === "excel") { T.push(["sync", "⇄ Đồng bộ Excel"]); T.push(["old", "Form Excel"]); }
+  $("#tabs").innerHTML = T.map(t => `<button data-t="${t[0]}">${t[1]}</button>`).join(" ");
+  $("#tabs").querySelectorAll("button").forEach(b => b.onclick = () => tab(b.dataset.t));
+  tab(MODE === "excel" ? "sync" : "nhap");
+}
+function tab(t) {
+  $("#tabs").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  if (t === "old") { location.href = "taskpane.html"; return; }
+  if (t === "nhap") { renderNav(); $("#view").innerHTML = '<div class="card muted">Chọn màn hình ở menu bên trái.</div>'; }
+  if (t === "hh") { $("#nav").innerHTML = ""; renderHH(); }
+  if (t === "sync") { $("#nav").innerHTML = ""; renderSync(); }
+}
+
+// ---------- NHẬP LIỆU TRỰC TIẾP VÀO SUPABASE ----------
+function renderNav() {
+  $("#nav").innerHTML = UI.menu.map((m, i) => `<div class="m">${esc(m.m)}</div>` +
+    m.s.map((s, j) => `<div class="s" data-i="${i}" data-j="${j}">${esc(s.t)}</div>`).join("")).join("");
+  $("#nav").querySelectorAll(".s").forEach(e => e.onclick = () => {
+    $("#nav").querySelectorAll(".s").forEach(x => x.classList.remove("on")); e.classList.add("on");
+    openScreen(UI.menu[e.dataset.i].s[e.dataset.j]);
+  });
+}
+function fields(s) {
+  const out = [], seen = new Set(), keys = UI.keys[s.tb] || [];
+  keys.forEach(k => { if (!s.tabs.some(t => t.f.some(f => f[0] === k))) out.push({ tab: "🔑 Mã", f: [k, k, "text", 1, 0, "Mã khoá"] }); });
+  s.tabs.forEach(t => t.f.forEach((f, n) => {
+    const id = f[0] || ("grid_" + t.n + n);
+    if ((!f[0] && f[2] !== "grid") || seen.has(id)) return;
+    seen.add(id); out.push({ tab: (t.ic ? t.ic + " " : "") + t.n, f });
+  }));
+  return out;
+}
+async function viewOf(tb) {
+  if (tb in CACHE.views) return CACHE.views[tb];
+  const { error } = await sb.from("v_" + tb).select("*").limit(1);
+  return CACHE.views[tb] = error ? null : "v_" + tb;
+}
+async function lists() {
+  if (CACHE.ls) return CACHE.ls;
+  const [a, b] = await Promise.all([sb.from("nhom_tham_so").select("ma_nhom,ten_danh_sach_name"), sb.from("tham_so").select("*")]);
+  const nm = {}, L = {};
+  (a.data || []).forEach(r => nm[r.ma_nhom] = r.ten_danh_sach_name);
+  (b.data || []).filter(r => r.dang_dung !== "Không").sort((x, y) => (x.thu_tu || 0) - (y.thu_tu || 0))
+    .forEach(r => { const n = nm[r.ma_nhom]; if (n) (L[n] = L[n] || []).push(r.gia_tri); });
+  return CACHE.ls = L;
+}
+async function lookup(tb, k, d) {
+  const id = tb + "|" + k + "|" + d; if (CACHE.lk[id]) return CACHE.lk[id];
+  const { data } = await sb.from(tb).select(d ? k + "," + d : k).limit(5000);
+  return CACHE.lk[id] = (data || []).map(r => [r[k], d ? r[d] : ""]);
+}
+const keyObj = (keys, r) => Object.fromEntries(keys.map(k => [k, r[k]]));
+
+async function openScreen(s) {
+  const keys = UI.keys[s.tb] || [], v = await viewOf(s.tb);
+  $("#view").innerHTML = `<div class="card"><div class="row"><h3 style="margin:0;flex:1">${esc(s.tit || s.t)}</h3>
+    <input id="q" placeholder="Tìm…" style="max-width:220px"><button class="b" id="bNew">＋ Thêm mới</button><button class="b2" id="bRe">↻ Tải lại</button></div>
+    <div id="lst" style="max-height:72vh;overflow:auto">Đang tải…</div></div>`;
+  $("#bNew").onclick = () => openForm(s, null); $("#bRe").onclick = () => openScreen(s);
+  const { data, error } = await sb.from(v || s.tb).select("*").limit(5000);
+  if (error) { $("#lst").innerHTML = `<div class="warn">${esc(error.message)}</div>`; return; }
+  const fl = fields(s).map(x => x.f).filter(f => f[0] && f[2] !== "grid" && !keys.includes(f[0]));
+  const cols = [...keys.map(k => [k, k]), ...fl.slice(0, 5).map(f => [f[0], f[1]])];
+  if (data[0] && "kiem_tra" in data[0]) cols.push(["kiem_tra", "Kiểm tra"]);
+  const draw = () => {
+    const q = $("#q").value.toLowerCase();
+    const rs = data.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+    $("#lst").innerHTML = `<table class="g"><tr>${cols.map(c => `<th>${esc(c[1])}</th>`).join("")}</tr>` +
+      rs.map(r => `<tr data-i="${data.indexOf(r)}">${cols.map(c => `<td class="${c[0] === "kiem_tra" ? (r.kiem_tra === "OK" ? "ok" : "warn") : ""}">${esc(fmt(r[c[0]]))}</td>`).join("")}</tr>`).join("") +
+      `</table><div class="muted">${rs.length} dòng</div>`;
+    $("#lst").querySelectorAll("tr[data-i]").forEach(tr => tr.onclick = () => openForm(s, data[tr.dataset.i]));
+  };
+  $("#q").oninput = draw; draw();
+}
+
+async function openForm(s, row) {
+  const isNew = !row, keys = UI.keys[s.tb] || [], L = await lists(), F = fields(s);
+  let base = row || {};
+  if (row) { const { data } = await sb.from(s.tb).select("*").match(keyObj(keys, row)).limit(1); base = Object.assign({}, row, data && data[0]); }
+  const tabs = [...new Set(F.map(x => x.tab))];
+  let h = `<div class="card"><div class="row"><h3 style="margin:0;flex:1">${esc(s.tit || s.t)} – ${isNew ? "Thêm mới" : esc(keys.map(k => base[k]).join(" / "))}</h3>
+    <button class="b" id="bSave">💾 Lưu</button>${isNew ? "" : '<button class="b del" id="bDel">🗑 Xoá</button>'}<button class="b2" id="bBack">← Danh sách</button></div>`;
+  if (base.kiem_tra) h += `<div class="${base.kiem_tra === "OK" ? "ok" : "warn"}" style="margin-bottom:8px">Kiểm tra: ${esc(base.kiem_tra)}</div>`;
+  h += `<div class="tabs">${tabs.map((t, i) => `<span data-k="${i}" class="${i ? "" : "on"}">${esc(t)}</span>`).join("")}</div>`;
+  tabs.forEach((t, i) => { h += `<div class="grid tp" data-k="${i}" style="${i ? "display:none" : ""}">` + F.filter(x => x.tab === t).map(x => ctrl(x.f, base, L, isNew, keys)).join("") + `</div>`; });
+  if (base.ngay_tao) h += `<div class="muted" style="margin-top:10px">Tạo: ${esc(fmt(base.ngay_tao))} – ${esc(base.nguoi_tao)} · Sửa: ${esc(fmt(base.ngay_sua))} – ${esc(base.nguoi_sua)}</div>`;
+  $("#view").innerHTML = h + "</div>";
+  $("#view").querySelectorAll(".tabs span").forEach(sp => sp.onclick = () => {
+    $("#view").querySelectorAll(".tabs span").forEach(x => x.classList.toggle("on", x === sp));
+    $("#view").querySelectorAll(".tp").forEach(p => p.style.display = p.dataset.k === sp.dataset.k ? "" : "none");
+  });
+  for (const el of $("#view").querySelectorAll("select[data-lk]")) {
+    const [tb, k, d] = el.dataset.lk.split(":"), opts = await lookup(tb, k, d), cur = el.dataset.v;
+    el.innerHTML = '<option value=""></option>' + opts.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === cur ? "selected" : ""}>${esc(o[0])}${o[1] ? " – " + esc(o[1]) : ""}</option>`).join("");
+  }
+  $("#bBack").onclick = () => openScreen(s);
+  $("#bSave").onclick = () => saveForm(s, F, isNew, base);
+  if (!isNew) $("#bDel").onclick = () => delRow(s, base);
+}
+function ctrl(f, b, L, isNew, keys) {
+  const [fd, lb, c, req, full, hint] = f, v = b[fd], id = "fld_" + fd;
+  const cls = full || c === "area" ? "full" : "";
+  if (c === "grid") return `<div class="full muted">▦ ${esc(lb)} – nhập ở màn hình chi tiết tương ứng hoặc form Excel.</div>`;
+  const lab = `<label>${esc(lb)}${req && c !== "ro" ? " <i>*</i>" : ""}</label>`, hh = hint ? `<div class="hint">${esc(hint)}</div>` : "";
+  const lock = !isNew && keys.includes(fd);
+  let inp;
+  if (c === "ro") inp = `<input readonly value="${esc(fmt(v))}">`;
+  else if (c.startsWith("ls:") && L[c.slice(3)]) {
+    const o = L[c.slice(3)].map(String), cur = v == null ? "" : String(v);
+    inp = `<select id="${id}" data-c="text"><option value=""></option>${o.map(x => `<option ${x === cur ? "selected" : ""}>${esc(x)}</option>`).join("")}${cur && !o.includes(cur) ? `<option selected>${esc(cur)}</option>` : ""}</select>`;
+  }
+  else if (c.startsWith("lk:")) inp = `<select id="${id}" data-c="text" data-lk="${esc(c.slice(3))}" data-v="${esc(v ?? "")}" ${lock ? "disabled" : ""}><option>${esc(v ?? "")}</option></select>`;
+  else if (c === "money" || c === "num") inp = `<input id="${id}" data-c="${c}" inputmode="decimal" value="${v == null ? "" : Number(v).toLocaleString("vi-VN", { maximumFractionDigits: 6 })}">`;
+  else if (c === "pct") inp = `<input id="${id}" data-c="pct" inputmode="decimal" placeholder="10 = 10%" value="${v == null ? "" : +(Number(v) * 100).toFixed(4)}">`;
+  else if (c === "date") inp = `<input id="${id}" data-c="date" type="date" value="${v ? String(v).slice(0, 10) : ""}">`;
+  else if (c === "area") inp = `<textarea id="${id}" data-c="text" rows="2">${esc(v ?? "")}</textarea>`;
+  else inp = `<input id="${id}" data-c="text" value="${esc(v ?? "")}" ${lock ? "readonly" : ""}>`;
+  return `<div class="${cls}">${lab}${inp}${hh}</div>`;
+}
+function readVal(el) {
+  const c = el.dataset.c, t = String(el.value).trim();
+  if (t === "") return null;
+  if (c === "money" || c === "num") { const n = Number(t.replace(/\./g, "").replace(/,/g, ".")); return isNaN(n) ? t : n; }
+  if (c === "pct") { const n = Number(t.replace(",", ".")); return isNaN(n) ? t : n / 100; }
+  return t;
+}
+async function saveForm(s, F, isNew, base) {
+  const keys = UI.keys[s.tb] || [], row = {}, miss = [];
+  F.forEach(x => {
+    const f = x.f; if (!f[0] || f[2] === "ro" || f[2] === "grid") return;
+    const el = document.getElementById("fld_" + f[0]); if (!el) return;
+    row[f[0]] = readVal(el); if (f[3] && row[f[0]] == null) miss.push(f[1]);
+  });
+  keys.forEach(k => { if (row[k] == null && base[k] != null) row[k] = base[k]; });
+  if (keys.some(k => row[k] == null)) return msg("Thiếu mã khoá: " + keys.join(", "), 1);
+  if (miss.length) return msg("Chưa nhập trường bắt buộc: " + miss.join(", "), 1);
+  const { error } = isNew ? await sb.from(s.tb).insert(row) : await sb.from(s.tb).update(row).match(keyObj(keys, base));
+  if (error) return msg("Lỗi lưu: " + error.message, 1);
+  msg("Đã lưu.");
+  const v = await viewOf(s.tb); let r = row;
+  if (v) { const { data } = await sb.from(v).select("*").match(keyObj(keys, row)).limit(1); if (data && data[0]) r = data[0]; }
+  openForm(s, r);
+}
+async function delRow(s, b) {
+  const keys = UI.keys[s.tb] || [];
+  if (!confirm("Xoá dòng " + keys.map(k => b[k]).join(" / ") + " trên Supabase?")) return;
+  const { error } = await sb.from(s.tb).delete().match(keyObj(keys, b));
+  if (error) return msg("Lỗi xoá: " + error.message, 1);
+  msg("Đã xoá."); openScreen(s);
+}
+
+// ---------- XEM HỢP ĐỒNG HIỆN HÀNH ----------
+async function renderHH() {
+  const V = [
+    ["v_hd_hien_hanh", "Hợp đồng hiện hành", ["ma_hop_dong", "so_hop_dong", "ten_nha_thau", "trang_thai_hd", "so_phu_luc", "ngay_ket_thuc_sau_pl", "gia_tri_hd_hien_hanh_vnd", "gia_tri_net_hien_hanh_vnd", "luy_ke_nghiem_thu_vnd", "luy_ke_thanh_toan_vnd", "da_thuc_chi_vnd", "con_phai_chi_vnd", "ty_le_giai_ngan", "kiem_tra"]],
+    ["v_hd_tv_hien_hanh", "Theo đơn vị quản lý tài chính", ["ma_don_vi_tc", "cap_don_vi", "ten_nha_thau", "gia_tri_phan_viec_hien_hanh_vnd", "gia_tri_net_hien_hanh_vnd", "gia_tri_tam_ung_theo_hd_vnd", "luy_ke_nghiem_thu_vnd", "luy_ke_thanh_toan_vnd", "tam_ung_chua_thu_hoi_vnd", "da_thuc_chi_vnd", "tk_thu_huong", "kiem_tra"]]];
+  $("#view").innerHTML = "Đang tải…"; let h = "";
+  for (const [v, t, c] of V) {
+    const { data, error } = await sb.from(v).select(c.join(",")).limit(5000);
+    h += `<div class="card"><h3 style="margin-top:0">${t}</h3>` + (error ? `<div class="warn">${esc(error.message)} – đã chạy giai đoạn 3c chưa?</div>` : grid(c, data)) + "</div>";
+  }
+  $("#view").innerHTML = h;
+}
+function grid(c, data) {
+  return `<div style="max-height:60vh;overflow:auto"><table class="g"><tr>${c.map(x => `<th>${esc(x)}</th>`).join("")}</tr>` +
+    data.map(r => `<tr>${c.map(x => `<td class="${x === "kiem_tra" ? (r[x] === "OK" ? "ok" : "warn") : ""}">${esc(x.startsWith("ty_le") && typeof r[x] === "number" ? (r[x] * 100).toFixed(1) + "%" : fmt(r[x]))}</td>`).join("")}</tr>`).join("") + `</table></div>`;
+}
+
+
+// ---------- ĐỒNG BỘ HAI CHIỀU EXCEL ↔ SUPABASE (chỉ trong Excel) ----------
+const ST = "DONGBO_TRANGTHAI";
+let CFG = null, MAP = null;
+const isDateFmt = f => /[dy]/i.test(String(f).replace(/\[[^\]]*\]|"[^"]*"/g, "")) && !/[#0]/.test(String(f).replace(/\[[^\]]*\]|"[^"]*"/g, ""));
+function ser2iso(s, withTime) {
+  const ms = Math.round((s - 25569) * 86400000);
+  return withTime ? new Date(ms - TZ * 3600000).toISOString() : new Date(ms).toISOString().slice(0, 10);
+}
+function toExcel(v) {
+  if (v == null) return "";
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return Date.UTC(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10)) / 86400000 + 25569;
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v)) return (new Date(v).getTime() + TZ * 3600000) / 86400000 + 25569;
+  if (typeof v === "boolean") return v ? "Có" : "Không";
+  return v;
+}
+const same = (a, b) => (typeof a === "number" && typeof b === "number") ? Math.abs(a - b) < 1e-6 : String(a ?? "") === String(b ?? "");
+function hash(o) { const s = JSON.stringify(o); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+const isF = x => String(x).startsWith("=");
+
+async function loadCfg() {
+  if (CFG) return;
+  const { data, error } = await sb.from("dong_bo_cau_hinh").select("*").order("thu_tu");
+  if (error) throw new Error("Chưa chạy script ở sheet SUPABASE_SYNC: " + error.message);
+  CFG = data;
+  MAP = await Excel.run(async ctx => {
+    const r = ctx.workbook.tables.getItem("tbl_DataDictionary").getDataBodyRange(); r.load("values"); await ctx.sync();
+    const m = {}; r.values.forEach(v => { if (v[12] === "Có" && v[2] && v[6]) (m[v[2]] = m[v[2]] || []).push([v[5], v[6]]); });
+    return m;
+  });
+}
+async function readState(ctx) {
+  let sh = ctx.workbook.worksheets.getItemOrNullObject(ST); await ctx.sync();
+  if (sh.isNullObject) {
+    sh = ctx.workbook.worksheets.add(ST);
+    const h = sh.getRange("A1:E1");
+    h.values = [["Bảng DB", "Bảng Excel", "Lần đồng bộ cuối (giờ máy chủ)", "Số dòng đã đồng bộ", "Dấu vân tay từng dòng (JSON) – KHÔNG sửa tay"]];
+    h.format.font.bold = true; h.format.font.color = "#FFFFFF"; h.format.fill.color = "#1F4E79";
+    sh.getRange("A:D").format.columnWidth = 140; await ctx.sync();
+  }
+  const u = sh.getUsedRange(); u.load("values"); await ctx.sync();
+  const S = {};
+  u.values.slice(1).forEach(r => { if (r[0]) { let h = {}; try { h = JSON.parse(r.slice(4).join("") || "{}"); } catch (e) {} S[r[0]] = { t: r[2] || null, h }; } });
+  return { sh, S };
+}
+async function saveState(ctx, sh, S) {
+  sh.getRange("A2:Z300").clear(Excel.ClearApplyTo.contents);
+  const rows = CFG.map(c => {
+    const s = S[c.bang] || {}, j = JSON.stringify(s.h || {}), ch = [];
+    for (let i = 0; i < j.length; i += 30000) ch.push(j.slice(i, i + 30000));
+    return [c.bang, c.bang_excel, s.t || "", Object.keys(s.h || {}).length, ...ch];
+  });
+  const w = Math.max(...rows.map(r => r.length)); rows.forEach(r => { while (r.length < w) r.push(""); });
+  const rg = sh.getRange("A2").getResizedRange(rows.length - 1, w - 1);
+  rg.numberFormat = rows.map(r => r.map(() => "@")); rg.values = rows.map(r => r.map(String));
+  await ctx.sync();
+}
+async function readTable(ctx, tn) {
+  const t = ctx.workbook.tables.getItem(tn), h = t.getHeaderRowRange(), b = t.getDataBodyRange();
+  h.load("values"); b.load("values,formulas,numberFormat,rowCount"); await ctx.sync();
+  return { t, b, H: h.values[0], V: b.values, FO: b.formulas, NF: b.numberFormat };
+}
+function excelRows(T, cols, keys) {
+  const ix = cols.map(([hd, f]) => [T.H.indexOf(hd), f]).filter(x => x[0] >= 0), rows = [];
+  T.V.forEach((r, i) => {
+    const o = {};
+    ix.forEach(([j, f]) => {
+      let v = r[j];
+      if (v === "" || v === null) v = null;
+      else if (typeof v === "number" && (isDateFmt(T.NF[i][j]) || /^ngay_/.test(f))) v = ser2iso(v, f === "ngay_tao" || f === "ngay_sua");
+      else if (typeof v === "string") { v = v.trim(); if (v.startsWith("⚠") || v === "") v = null; }
+      else if (typeof v === "boolean") v = v ? "Có" : "Không";
+      o[f] = v;
+    });
+    if (keys.every(k => o[k] != null)) {
+      const core = {}; Object.keys(o).forEach(k => { if (!AUD.includes(k)) core[k] = o[k]; });
+      rows.push({ i, o, k: keys.map(k => o[k]).join("¦"), h: hash(core) });
+    }
+  });
+  return { rows, ix };
+}
+function setCell(T, i, j, v, asText) {
+  if (isF(T.FO[i][j])) return;
+  const c = T.b.getCell(i, j); c.values = [[asText ? v : toExcel(v)]];
+  if (!asText && !isDateFmt(T.NF[i][j])) c.numberFormat = [["dd/mm/yyyy hh:mm"]];
+}
+
+async function pushTable(ctx, c, S, now, log) {
+  const cols = MAP[c.bang_excel]; const st = S[c.bang] || (S[c.bang] = { t: null, h: {} });
+  if (!cols) { log(`⚠ ${c.bang}: không có cột trong DATA_DICTIONARY`); return { conflicts: [], gone: [] }; }
+  const T = await readTable(ctx, c.bang_excel), { rows, ix } = excelRows(T, cols, c.khoa);
+  const col = f => (ix.find(x => x[1] === f) || [])[0];
+  let marked = 0;
+  if (st.t) rows.forEach(r => {
+    const old = st.h[r.k]; if (old === r.h) return;
+    if (old === undefined) {
+      if (!r.o.ngay_tao && col("ngay_tao") != null) { r.o.ngay_tao = now; setCell(T, r.i, col("ngay_tao"), now); }
+      if (!r.o.nguoi_tao && col("nguoi_tao") != null) { r.o.nguoi_tao = USER.email; setCell(T, r.i, col("nguoi_tao"), USER.email, 1); }
+    } else if (!r.o.ngay_sua || new Date(r.o.ngay_sua) <= new Date(st.t)) {
+      r.o.ngay_sua = now; r.o.nguoi_sua = USER.email; marked++;
+      if (col("ngay_sua") != null) setCell(T, r.i, col("ngay_sua"), now);
+      if (col("nguoi_sua") != null) setCell(T, r.i, col("nguoi_sua"), USER.email, 1);
+    }
+  });
+  await ctx.sync();
+  const tot = { them: 0, sua: 0, bo_qua: 0 }, conflicts = [];
+  for (let a = 0; a < rows.length; a += 200) {
+    const { data, error } = await sb.rpc("fn_dong_bo_day", { p_bang: c.bang, p_dong: rows.slice(a, a + 200).map(r => r.o), p_lan_truoc: st.t, p_ghi_de: false });
+    if (error) throw new Error(c.bang + ": " + error.message);
+    tot.them += data.them; tot.sua += data.sua; tot.bo_qua += data.bo_qua;
+    (data.xung_dot || []).forEach(x => conflicts.push(Object.assign({ bang: c.bang }, x)));
+  }
+  const cur = new Set(rows.map(r => r.k));
+  const gone = st.t ? Object.keys(st.h).filter(k => !cur.has(k)) : [];
+  log(`↑ ${c.bang_excel}: thêm ${tot.them}, sửa ${tot.sua}, không đổi ${tot.bo_qua}` + (marked ? `, tự ghi Ngày sửa ${marked} dòng` : "") + (conflicts.length ? `, ⚠ xung đột ${conflicts.length}` : ""));
+  return { conflicts, gone };
+}
+
+async function applyRows(ctx, c, list, skip, delKeys) {
+  const cols = MAP[c.bang_excel]; if (!cols) return { up: 0, add: 0, del: 0 };
+  const T = await readTable(ctx, c.bang_excel), { rows, ix } = excelRows(T, cols, c.khoa);
+  const pos = {}; rows.forEach(r => pos[r.k] = r);
+  let up = 0, add = 0, del = 0; const adds = [];
+  for (const d of list) {
+    const k = c.khoa.map(x => d[x]).join("¦"); if (skip.has(k)) continue;
+    const ex = pos[k];
+    if (ex) {
+      let ch = false;
+      ix.forEach(([j, f]) => {
+        if (!(f in d) || isF(T.FO[ex.i][j])) return;
+        const nv = toExcel(d[f]); if (same(T.V[ex.i][j], nv)) return;
+        T.b.getCell(ex.i, j).values = [[nv]]; ch = true;
+      });
+      if (ch) up++;
+    } else {
+      adds.push(T.H.map((h, j) => {
+        if (T.FO.length && isF(T.FO[0][j])) return T.FO[0][j];
+        const m = ix.find(x => x[0] === j); return m && m[1] in d ? toExcel(d[m[1]]) : "";
+      }));
+      add++;
+    }
+  }
+  if (delKeys && delKeys.length) {
+    const idx = delKeys.map(o => pos[c.khoa.map(x => o[x]).join("¦")]).filter(Boolean).map(r => r.i).sort((a, b) => b - a);
+    for (const i of idx) { T.t.rows.getItemAt(i).delete(); del++; }
+  }
+  if (adds.length) T.t.rows.add(null, adds);
+  await ctx.sync();
+  return { up, add, del };
+}
+
+async function syncAll(sel, delSv, delEx, log) {
+  await loadCfg();
+  const list = CFG.filter(c => sel.includes(c.bang)), conflicts = [], now = new Date().toISOString();
+  await Excel.run(async ctx => {
+    const { sh, S } = await readState(ctx), skip = {}, gone = {};
+    log("— Bước 1: đẩy Excel → Supabase");
+    for (const c of list) {
+      const r = await pushTable(ctx, c, S, now, log);
+      r.conflicts.forEach(x => conflicts.push(x));
+      skip[c.bang] = new Set(r.conflicts.map(x => c.khoa.map(k => x.khoa[k]).join("¦")));
+      gone[c.bang] = r.gone;
+    }
+    for (const c of [...list].reverse()) {
+      const g = gone[c.bang] || []; if (!g.length) continue;
+      if (!delSv) { log(`⚠ ${c.bang_excel}: ${g.length} dòng đã xoá ở Excel – chưa xoá trên Supabase (tích ô "Xoá trên Supabase…" để áp dụng)`); continue; }
+      const keys = g.map(k => Object.fromEntries(c.khoa.map((f, i) => [f, k.split("¦")[i]])));
+      const { data, error } = await sb.rpc("fn_dong_bo_xoa", { p_bang: c.bang, p_khoa: keys });
+      if (error) throw new Error(c.bang + ": " + error.message);
+      g.forEach(k => delete S[c.bang].h[k]); gone[c.bang] = [];
+      log(`✖ ${c.bang_excel}: đã xoá trên Supabase ${data} dòng`);
+    }
+    log("— Bước 2: kéo Supabase → Excel");
+    for (const c of list) {
+      const st = S[c.bang] || (S[c.bang] = { t: null, h: {} });
+      const { data, error } = await sb.rpc("fn_dong_bo_keo", { p_bang: c.bang, p_tu: st.t });
+      if (error) throw new Error(c.bang + ": " + error.message);
+      const dk = delEx ? data.da_xoa : [];
+      if (!delEx && data.da_xoa.length) log(`⚠ ${c.bang_excel}: ${data.da_xoa.length} dòng đã xoá trên web – chưa xoá ở Excel (tích ô "Xoá ở Excel…")`);
+      const r = await applyRows(ctx, c, data.dong, skip[c.bang] || new Set(), dk);
+      if (r.up || r.add || r.del) log(`↓ ${c.bang_excel}: cập nhật ${r.up}, thêm ${r.add}, xoá ${r.del}`);
+      // cập nhật trạng thái: dấu vân tay mới (giữ dấu cũ cho dòng xung đột / dòng chờ xoá)
+      const T = await readTable(ctx, c.bang_excel), now2 = excelRows(T, MAP[c.bang_excel] || [], c.khoa).rows;
+      const h = {}; now2.forEach(x => h[x.k] = x.h);
+      (skip[c.bang] || new Set()).forEach(k => { if (st.h[k]) h[k] = st.h[k]; });
+      (gone[c.bang] || []).forEach(k => { if (st.h[k]) h[k] = st.h[k]; });
+      st.h = h; st.t = data.thoi_diem;
+    }
+    await saveState(ctx, sh, S);
+  });
+  return { conflicts };
+}
+
+function renderSync() {
+  $("#view").innerHTML = `<div class="card"><h3 style="margin-top:0">Đồng bộ hai chiều Excel ↔ Supabase</h3>
+    <div class="muted">1) Đẩy thay đổi ở Excel lên → 2) kéo thay đổi trên web về. Bên có Ngày sửa mới hơn thắng; dòng sửa ở cả hai phía kể từ lần đồng bộ trước được liệt kê để bạn chọn.
+    Dòng sửa tay ở Excel được tự nhận ra và ghi Ngày sửa / Người sửa. Chỉ ghi vào cột nhập liệu – không đụng cột công thức.</div>
+    <div class="row" style="margin-top:10px"><button class="b" id="sGo">⇄ Đồng bộ 2 chiều</button></div>
+    <div class="row"><label style="display:flex;gap:6px;align-items:center;width:auto"><input type="checkbox" id="dSv" style="width:auto"> Xoá trên Supabase các dòng đã xoá ở Excel</label>
+    <label style="display:flex;gap:6px;align-items:center;width:auto"><input type="checkbox" id="dEx" style="width:auto"> Xoá ở Excel các dòng đã xoá trên web</label></div>
+    <details><summary>Chọn bảng (mặc định: tất cả)</summary><div id="sTb" class="grid" style="margin-top:6px"></div></details></div>
+    <div class="card"><b>Kết quả</b><pre id="sLog" style="white-space:pre-wrap;margin:6px 0 0;max-height:45vh;overflow:auto"></pre></div><div id="sCf"></div>`;
+  loadCfg().then(() => {
+    $("#sTb").innerHTML = CFG.map(c => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="tb" value="${c.bang}" checked style="width:auto">${esc(c.bang_excel)}</label>`).join("");
+  }).catch(e => { $("#sLog").textContent = "✖ " + e.message; });
+  $("#sGo").onclick = async () => {
+    const sel = [...document.querySelectorAll(".tb:checked")].map(x => x.value), log = t => { $("#sLog").textContent += t + "\n"; };
+    $("#sLog").textContent = ""; $("#sCf").innerHTML = ""; $("#sGo").disabled = true;
+    try {
+      const r = await syncAll(sel, $("#dSv").checked, $("#dEx").checked, log);
+      log("✔ Xong. Nhớ lưu file Excel (Ctrl+S)."); msg("Đồng bộ xong.");
+      if (r.conflicts.length) showConflicts(r.conflicts);
+    } catch (e) { log("✖ " + e.message); msg(e.message, 1); }
+    $("#sGo").disabled = false;
+  };
+}
+function showConflicts(cf) {
+  const rows = cf.map((x, i) => {
+    const diff = Object.keys(x.excel).filter(k => !AUD.includes(k) && !same(toExcel(x.excel[k]), toExcel(x.supabase[k])));
+    return `<tr><td>${esc(x.bang)}</td><td>${esc(Object.values(x.khoa).join(" / "))}</td><td style="white-space:normal">` +
+      diff.map(k => `<div><b>${esc(k)}</b>: Excel = ${esc(fmt(x.excel[k]))} · Supabase = ${esc(fmt(x.supabase[k]))}</div>`).join("") +
+      `<div class="muted">Sửa ở Excel: ${esc(fmt(x.excel.ngay_sua))} · trên web: ${esc(fmt(x.supabase.ngay_sua))} (${esc(x.supabase.nguoi_sua || "")})</div></td>
+      <td><select data-i="${i}" class="cfc" style="width:140px"><option value="">(để sau)</option><option value="e">Giữ bản Excel</option><option value="s">Giữ bản Supabase</option></select></td></tr>`;
+  }).join("");
+  $("#sCf").innerHTML = `<div class="card"><b class="warn">⚠ ${cf.length} dòng xung đột</b> – bị sửa ở cả Excel và web kể từ lần đồng bộ trước.
+    <table class="g" style="margin-top:6px"><tr><th>Bảng</th><th>Khoá</th><th>Khác nhau</th><th>Chọn</th></tr>${rows}</table>
+    <div class="row" style="margin-top:8px"><button class="b" id="cfOk">Áp dụng lựa chọn</button><span class="muted">Dòng "để sau": lần đồng bộ tới bên có Ngày sửa mới hơn sẽ thắng.</span></div></div>`;
+  $("#cfOk").onclick = async () => {
+    try {
+      const ch = [...document.querySelectorAll(".cfc")].filter(s => s.value);
+      await Excel.run(async ctx => {
+        for (const s of ch) {
+          const x = cf[s.dataset.i], c = CFG.find(c => c.bang === x.bang);
+          if (s.value === "e") { const { error } = await sb.rpc("fn_dong_bo_day", { p_bang: x.bang, p_dong: [x.excel], p_lan_truoc: null, p_ghi_de: true }); if (error) throw error; }
+          else await applyRows(ctx, c, [x.supabase], new Set(), null);
+        }
+      });
+      msg("Đã áp dụng " + ch.length + " lựa chọn."); $("#sCf").innerHTML = "";
+      $("#sLog").textContent += "✔ Đã xử lý " + ch.length + " xung đột. Bấm Đồng bộ 2 chiều lần nữa để cập nhật trạng thái.\n";
+    } catch (e) { msg(e.message, 1); }
+  };
+}
+
+</script>
+</body>
+</html>
